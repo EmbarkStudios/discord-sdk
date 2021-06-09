@@ -1,0 +1,54 @@
+targets = [
+    { triple = "x86_64-unknown-linux-gnu" },
+    { triple = "x86_64-unknown-linux-musl" },
+    { triple = "aarch64-apple-darwin" },
+    { triple = "x86_64-apple-darwin" },
+    { triple = "x86_64-pc-windows-msvc" },
+]
+
+[advisories]
+vulnerability = "deny"
+unmaintained = "warn"
+yanked = "deny"
+ignore = [
+]
+
+[bans]
+multiple-versions = "deny"
+deny = [
+    { name = "openssl" },           # we use rustls instead
+    { name = "openssl-sys" },       # we use rustls instead
+    { name = "dirs" },              # dirs crate has a lot of dependencies and there are better alternatives
+    { name = "dirs-sys" },          # dirs crate has a lot of dependencies and there are better alternatives
+    { name = "cmake" },             # we use cc crate instead and convert projects to use it
+]
+skip = [
+    
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+required-git-spec = "rev"
+allow-git = [
+]
+
+[sources.allow-org]
+github = [
+    "EmbarkStudios",
+]
+
+[licenses]
+private = { ignore = true, registries = ["embark"] }
+unlicensed = "deny"
+allow-osi-fsf-free = "neither"
+confidence-threshold = 0.92
+copyleft = "deny"
+allow = [
+    "Apache-2.0",                     # https://tldrlegal.com/license/apache-license-2.0-(apache-2.0)
+    "BSD-3-Clause",                   # https://tldrlegal.com/license/bsd-3-clause-license-(revised)
+    "MIT",                            # https://tldrlegal.com/license/mit-license
+]
+exceptions = [
+    
+]

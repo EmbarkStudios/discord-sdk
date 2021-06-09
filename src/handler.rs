@@ -1,0 +1,240 @@
+use crate::types::{CommandKind, ErrorPayloadStack, Event, EventKind};
+use crossbeam_channel as cc;
+
+#[derive(serde::Serialize)]
+pub(crate) struct Rpc<T: serde::Serialize> {
+    /// The RPC type
+    pub(crate) cmd: CommandKind,
+    /// Every RPC we send to Discord needs a [`nonce`](https://en.wikipedia.org/wiki/Cryptographic_nonce)
+    /// to uniquely identify the RPC. This nonce is sent back when Discord either
+    /// responds to an RPC, or acknowledges receipt
+    pub(crate) nonce: String,
+    /// The event, only used for un/subscribe RPCs :(
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) evt: Option<EventKind>,
+    /// The arguments for the RPC, used by all RPCs other than un/subscribe :(
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) args: Option<T>,
+}
+
+pub(crate) fn handler_task(
+    handler: Box<dyn crate::DiscordHandler>,
+    rrx: cc::Receiver<crate::io::IoMsg>,
+    _stx: cc::Sender<Option<Vec<u8>>>,
+    state: crate::State,
+) -> tokio::task::JoinHandle<()> {
+    tokio::task::spawn(async move {
+        tracing::debug!("starting handler loop");
+        let mut interval = tokio::time::interval(std::time::Duration::from_millis(10));
+
+        let pop_nonce = |nonce: usize| -> Option<crate::NotifyItem> {
+            let mut lock = state.notify_queue.lock();
+
+            lock.iter()
+                .position(|item| item.nonce == nonce)
+                .map(|position| lock.swap_remove(position))
+        };
+
+        loop {
+            interval.tick().await;
+            match rrx.try_recv() {
+                Ok(io_msg) => {
+                    let msg = match io_msg {
+                        crate::io::IoMsg::Disconnected { reason } => {
+                            *state.user.write() = None;
+                            handler.on_event(Event::Disconnected { reason }).await;
+                            continue;
+                        }
+                        crate::io::IoMsg::Frame(frame) => process_frame(frame),
+                    };
+
+                    match msg {
+                        Msg::Event(event) => match &event {
+                            Event::Ready { user } => {
+                                // TODO: subscribe to events once we are connected
+                                // for activity in
+                                //     &[EventKind::Join, EventKind::JoinRequest, EventKind::Spectate]
+                                // {
+                                //     match serialize_message(
+                                //         OpCode::Frame,
+                                //         &Rpc::<()> {
+                                //             cmd: Command::Subscribe,
+                                //             evt: Some(*activity),
+                                //             nonce: next_nonce(),
+                                //             args: None,
+                                //         },
+                                //     ) {
+                                //         Ok(msg) => {
+                                //             if stx.try_send(Some(msg)).is_err() {
+                                //                 tracing::error!("unable to queue subscription");
+                                //             }
+                                //         }
+                                //         Err(e) => {
+                                //             tracing::error!(
+                                //                 "failed to serialize subscribe request: {}",
+                                //                 e
+                                //             );
+                                //         }
+                                //     }
+                                // }
+
+                                *state.user.write() = Some(user.clone());
+                                handler.on_event(event).await;
+                            }
+                            Event::Disconnected { .. } => {
+                                *state.user.write() = None;
+                                handler.on_event(event).await;
+                            }
+                            _ => {
+                                handler.on_event(event).await;
+                            }
+                        },
+                        Msg::Command { command, kind } => match pop_nonce(command.nonce) {
+                            Some(ni) => {
+                                if ni
+                                    .tx
+                                    .send(if ni.cmd == kind {
+                                        Ok(command.inner)
+                                    } else {
+                                        Err(crate::Error::Discord(
+                                            crate::DiscordErr::MismatchedResponse {
+                                                expected: ni.cmd,
+                                                actual: kind,
+                                                nonce: command.nonce,
+                                            },
+                                        ))
+                                    })
+                                    .is_err()
+                                {
+                                    tracing::warn!(
+                                        cmd = ?kind,
+                                        nonce = command.nonce,
+                                        "command response dropped as receiver was closed",
+                                    );
+                                }
+                            }
+                            None => {
+                                tracing::warn!(
+                                    cmd = ?command.inner,
+                                    nonce = command.nonce,
+                                    "received a command response with an unknown nonce",
+                                );
+                            }
+                        },
+                        Msg::Error { nonce, error, .. } => match nonce {
+                            Some(nonce) => match pop_nonce(nonce) {
+                                Some(ni) => {
+                                    if let Err(error) = ni.tx.send(Err(error)) {
+                                        tracing::warn!(
+                                            error = ?error.unwrap_err(),
+                                            nonce = nonce,
+                                            "error result dropped as receiver was closed",
+                                        );
+                                    }
+                                }
+                                None => {
+                                    handler.on_error(error).await;
+                                }
+                            },
+                            None => {
+                                handler.on_error(error).await;
+                            }
+                        },
+                    }
+                }
+                Err(cc::TryRecvError::Empty) => continue,
+                Err(cc::TryRecvError::Disconnected) => break,
+            }
+        }
+    })
+}
+
+pub(crate) enum Msg {
+    Command {
+        command: crate::types::CommandFrame,
+        kind: CommandKind,
+    },
+    Event(Event),
+    Error {
+        nonce: Option<usize>,
+        error: crate::Error,
+    },
+}
+
+fn process_frame(data_buf: Vec<u8>) -> Msg {
+    // Discord echoes back our requests with the same nonce they were sent
+    // with, however for those echoes, the "evt" field is not set, other than
+    // for the "ERROR" RPC type, so we attempt to deserialize those two
+    // cases first so we can just ignore the echoes and move on to avoid
+    // further complicating the deserialization of the RPCs we actually
+    // care about
+
+    #[derive(serde::Deserialize)]
+    struct RawMsg {
+        cmd: Option<CommandKind>,
+        evt: Option<EventKind>,
+        #[serde(deserialize_with = "crate::types::string::deserialize_opt")]
+        nonce: Option<usize>,
+    }
+
+    let rm: RawMsg = match serde_json::from_slice(&data_buf) {
+        Ok(f) => f,
+        Err(e) => {
+            tracing::warn!(
+                "Failed to deserialize message: {} {}",
+                e,
+                std::str::from_utf8(&data_buf).unwrap(),
+            );
+
+            return Msg::Error {
+                nonce: None,
+                error: crate::Error::Json(e),
+            };
+        }
+    };
+
+    match rm.evt {
+        Some(EventKind::Error) => {
+            #[derive(serde::Deserialize)]
+            struct ErrorMsg<'stack> {
+                #[serde(borrow)]
+                data: Option<ErrorPayloadStack<'stack>>,
+            }
+
+            match serde_json::from_slice::<ErrorMsg<'_>>(&data_buf) {
+                Ok(em) => Msg::Error {
+                    nonce: rm.nonce,
+                    error: crate::Error::Discord(crate::DiscordErr::Api(em.data.into())),
+                },
+                Err(e) => Msg::Error {
+                    nonce: rm.nonce,
+                    error: crate::Error::Discord(crate::DiscordErr::Api(
+                        crate::DiscordApiErr::Unknown {
+                            code: None,
+                            message: Some(format!("failed to deserialize error: {}", e)),
+                        },
+                    )),
+                },
+            }
+        }
+        Some(_) => match serde_json::from_slice::<crate::types::EventFrame>(&data_buf) {
+            Ok(event_frame) => Msg::Event(event_frame.inner),
+            Err(e) => Msg::Error {
+                nonce: rm.nonce,
+                error: crate::Error::Json(e),
+            },
+        },
+        None => match serde_json::from_slice(&data_buf) {
+            Ok(cmd_frame) => Msg::Command {
+                command: cmd_frame,
+                kind: rm
+                    .cmd
+                    .expect("successfully deserialized command with 'cmd' field"),
+            },
+            Err(e) => Msg::Error {
+                nonce: rm.nonce,
+                error: crate::Error::Json(e),
+            },
+        },
+    }
+}
