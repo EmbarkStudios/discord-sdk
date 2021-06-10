@@ -12,9 +12,11 @@ pub struct Party {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub size: Option<(u32, u32)>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub privacy: Option<i32>,
+    pub privacy: Option<PartyPrivacy>,
 }
 
+#[derive(serde_repr::Serialize_repr, serde_repr::Deserialize_repr, PartialEq, Debug)]
+#[repr(u8)]
 pub enum PartyPrivacy {
     Private,
     Public,
@@ -96,7 +98,7 @@ pub struct Timestamps {
 }
 
 #[derive(Default, Debug, Deserialize, Serialize)]
-pub struct PresenceActivity {
+pub struct Activity {
     /// The player's current party status
     #[serde(skip_serializing_if = "Option::is_none")]
     pub state: Option<String>,
@@ -123,7 +125,7 @@ pub struct PresenceActivity {
 #[derive(Debug, Deserialize)]
 pub struct SetActivity {
     #[serde(flatten)]
-    activity: PresenceActivity,
+    activity: Activity,
     /// The name of the application
     name: Option<String>,
     #[serde(deserialize_with = "crate::types::string::deserialize_opt")]
@@ -145,13 +147,13 @@ pub struct Secrets {
 }
 
 #[derive(Serialize)]
-pub(crate) struct PresenceArgs {
+pub(crate) struct ActivityArgs {
     pid: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
-    activity: Option<PresenceActivity>,
+    activity: Option<Activity>,
 }
 
-impl Default for PresenceArgs {
+impl Default for ActivityArgs {
     fn default() -> Self {
         Self {
             pid: std::process::id(),
@@ -161,11 +163,11 @@ impl Default for PresenceArgs {
 }
 
 #[derive(Default)]
-pub struct RichPresenceBuilder {
-    pub(crate) inner: PresenceArgs,
+pub struct ActivityBuilder {
+    pub(crate) inner: ActivityArgs,
 }
 
-impl RichPresenceBuilder {
+impl ActivityBuilder {
     pub fn new() -> Self {
         Self::default()
     }
@@ -179,7 +181,7 @@ impl RichPresenceBuilder {
         match &mut self.inner.activity {
             Some(activity) => activity.state = state,
             None => {
-                self.inner.activity = Some(PresenceActivity {
+                self.inner.activity = Some(Activity {
                     state,
                     ..Default::default()
                 });
@@ -198,7 +200,7 @@ impl RichPresenceBuilder {
         match &mut self.inner.activity {
             Some(activity) => activity.details = details,
             None => {
-                self.inner.activity = Some(PresenceActivity {
+                self.inner.activity = Some(Activity {
                     details,
                     ..Default::default()
                 });
@@ -233,7 +235,7 @@ impl RichPresenceBuilder {
         match &mut self.inner.activity {
             Some(activity) => activity.timestamps = timestamps,
             None => {
-                self.inner.activity = Some(PresenceActivity {
+                self.inner.activity = Some(Activity {
                     timestamps,
                     ..Default::default()
                 });
@@ -254,7 +256,7 @@ impl RichPresenceBuilder {
         match &mut self.inner.activity {
             Some(activity) => activity.assets = assets,
             None => {
-                self.inner.activity = Some(PresenceActivity {
+                self.inner.activity = Some(Activity {
                     assets,
                     ..Default::default()
                 });
@@ -294,17 +296,16 @@ impl RichPresenceBuilder {
             _ => None,
         };
 
-        let privacy = match privacy {
-            PartyPrivacy::Private => None,
-            PartyPrivacy::Public => Some(1),
-        };
-
-        let party = Some(Party { id, size, privacy });
+        let party = Some(Party {
+            id,
+            size,
+            privacy: Some(privacy),
+        });
 
         match &mut self.inner.activity {
             Some(activity) => activity.party = party,
             None => {
-                self.inner.activity = Some(PresenceActivity {
+                self.inner.activity = Some(Activity {
                     party,
                     ..Default::default()
                 });
@@ -319,7 +320,7 @@ impl RichPresenceBuilder {
         match &mut self.inner.activity {
             Some(activity) => activity.instance = is_instance,
             None => {
-                self.inner.activity = Some(PresenceActivity {
+                self.inner.activity = Some(Activity {
                     instance: is_instance,
                     ..Default::default()
                 });
@@ -341,7 +342,7 @@ impl RichPresenceBuilder {
         match &mut self.inner.activity {
             Some(activity) => activity.secrets = secrets,
             None => {
-                self.inner.activity = Some(PresenceActivity {
+                self.inner.activity = Some(Activity {
                     secrets,
                     ..Default::default()
                 });
@@ -356,8 +357,8 @@ impl crate::Discord {
     /// Updates the rich presence for the logged in [`User`].
     pub async fn update_presence(
         &self,
-        presence: RichPresenceBuilder,
-    ) -> Result<Option<PresenceActivity>, Error> {
+        presence: ActivityBuilder,
+    ) -> Result<Option<Activity>, Error> {
         let rx = self.send_rpc(CommandKind::SetActivity, presence.inner)?;
 
         // TODO: Keep track of the last set activity and send it immediately if
@@ -368,8 +369,8 @@ impl crate::Discord {
     }
 
     /// Clears the rich presence for the logged in [`User`].
-    pub async fn clear_presence(&self) -> Result<Option<PresenceActivity>, Error> {
-        let rx = self.send_rpc(CommandKind::SetActivity, PresenceArgs::default())?;
+    pub async fn clear_presence(&self) -> Result<Option<Activity>, Error> {
+        let rx = self.send_rpc(CommandKind::SetActivity, ActivityArgs::default())?;
 
         handle_response!(rx, Command::SetActivity(sa) => {
             Ok(sa.map(|sa| sa.activity))

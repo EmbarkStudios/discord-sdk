@@ -25,6 +25,26 @@ pub(crate) struct ErrorPayloadStack<'stack> {
     pub(crate) message: Option<&'stack str>,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Environment {
+    Production,
+    Other(String),
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DiscordConfig {
+    /// The CDN host that can be used to retrieve user avatars
+    pub cdn_host: String,
+    /// Supposedly this is the type of build of the Discord app, but seems
+    /// to return "production" for stable, PTB, and canary, so not really
+    /// useful
+    pub environment: Environment,
+    /// The url (well, not really because it doesn't specify the scheme
+    /// for some reason) to the Discord REST API
+    pub api_endpoint: String,
+}
+
 /// An event sent from Discord to notify us of some kind of state change or
 /// completed action.
 ///
@@ -37,6 +57,12 @@ pub enum Event {
     /// Sent by Discord upon receipt of our [`Handshake`] message, the user is
     /// the current user logged in to the Discord we connected to.
     Ready {
+        /// The protocol version, we only support v1, which is fine since that is
+        /// (currently) the only version
+        #[serde(rename = "v")]
+        version: u32,
+        config: DiscordConfig,
+        /// The user that is logged into the Discord application we connected to
         #[serde(deserialize_with = "de_user")]
         user: User,
     },
@@ -72,7 +98,12 @@ pub enum Event {
 pub(crate) enum Command {
     CreateLobby(Lobby),
     UpdateLobby,
-    SetActivity(Option<crate::rich_presence::SetActivity>),
+    SetActivity(Option<crate::activity::SetActivity>),
+    SearchLobbies(Vec<Lobby>),
+    DeleteLobby,
+    ConnectToLobby(Lobby),
+    SendToLobby,
+    Subscribe { evt: EventKind },
 }
 
 /// An RPC sent from Discord as JSON, in response to an RPC sent by us.
@@ -114,7 +145,7 @@ pub(crate) struct EventFrame {
 }
 
 /// Events sent from Discord when some action occurs
-#[derive(Copy, Clone, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub(crate) enum EventKind {
     Ready,
@@ -161,6 +192,14 @@ pub enum CommandKind {
     CreateLobby,
     /// RPC sent to modify the mutable properties of a lobby
     UpdateLobby,
+    /// RPC sent to search for lobbies based on some criteria
+    SearchLobbies,
+    /// RPC sent to delete a lobby
+    DeleteLobby,
+    /// RPC sent to connect to a lobby
+    ConnectToLobby,
+    /// RPC to send a message to a lobby
+    SendToLobby,
 }
 
 /// A Discord user
@@ -367,6 +406,14 @@ impl Snowflake {
 impl fmt::Display for Snowflake {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+impl std::str::FromStr for Snowflake {
+    type Err = std::num::ParseIntError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(s.parse()?))
     }
 }
 

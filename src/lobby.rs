@@ -3,6 +3,7 @@ use crate::{
     AppId, DiscordErr, Error,
 };
 use serde::{Deserialize, Serialize};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 
 pub type Metadata = std::collections::BTreeMap<String, String>;
 pub type LobbyId = Snowflake;
@@ -35,111 +36,11 @@ pub enum Region {
     VipUsWest,
 }
 
-#[derive(Copy, Clone, Debug)]
-pub enum LobbyType {
+#[derive(Copy, Clone, Debug, Serialize_repr, Deserialize_repr)]
+#[repr(u8)]
+pub enum LobbyKind {
     Private = 1,
     Public = 2,
-}
-
-impl Serialize for LobbyType {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_i32(match self {
-            Self::Private => 1,
-            Self::Public => 2,
-        })
-    }
-}
-
-impl<'de> serde::Deserialize<'de> for LobbyType {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        struct Visitor;
-
-        impl<'de> serde::de::Visitor<'de> for Visitor {
-            type Value = LobbyType;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("an integer of 1 or 2")
-            }
-
-            fn visit_i8<E>(self, value: i8) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                self.visit_i64(value as i64)
-            }
-
-            fn visit_i16<E>(self, value: i16) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                self.visit_i64(value as i64)
-            }
-
-            fn visit_i32<E>(self, value: i32) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                self.visit_i64(value as i64)
-            }
-
-            fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                match value {
-                    1 => Ok(LobbyType::Private),
-                    2 => Ok(LobbyType::Public),
-                    other => Err(serde::de::Error::custom(format!(
-                        "unknown lobby type: {}",
-                        other
-                    ))),
-                }
-            }
-
-            fn visit_u8<E>(self, value: u8) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                self.visit_u64(value as u64)
-            }
-
-            fn visit_u16<E>(self, value: u16) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                self.visit_u64(value as u64)
-            }
-
-            fn visit_u32<E>(self, value: u32) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                self.visit_u64(value as u64)
-            }
-
-            fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                match value {
-                    1 => Ok(LobbyType::Private),
-                    2 => Ok(LobbyType::Public),
-                    other => Err(serde::de::Error::custom(format!(
-                        "unknown lobby type: {}",
-                        other
-                    ))),
-                }
-            }
-        }
-
-        deserializer.deserialize_i32(Visitor)
-    }
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -154,7 +55,7 @@ pub struct Lobby {
     pub region: Region,
     pub secret: String,
     #[serde(rename = "type")]
-    pub kind: LobbyType,
+    pub kind: LobbyKind,
     pub voice_states: Vec<String>,
 }
 
@@ -175,7 +76,7 @@ struct LobbyArgs {
     capacity: u32,
     /// If the lobby is public or private
     #[serde(rename = "type")]
-    kind: LobbyType,
+    kind: LobbyKind,
     /// Whether or not the lobby can be joined
     locked: bool,
     /// The ID of the user to make the owner, only set when modifying
@@ -205,7 +106,7 @@ impl Default for LobbyArgs {
         Self {
             id: None,
             capacity: 16,
-            kind: LobbyType::Private,
+            kind: LobbyKind::Private,
             locked: false,
             owner: None,
             metadata: Default::default(),
@@ -230,7 +131,7 @@ impl CreateLobbyBuilder {
     }
 
     #[inline]
-    pub fn kind(mut self, kind: LobbyType) -> Self {
+    pub fn kind(mut self, kind: LobbyKind) -> Self {
         self.inner.kind = kind;
         self
     }
@@ -261,7 +162,7 @@ impl UpdateLobbyBuilder {
     }
 
     #[inline]
-    pub fn kind(mut self, kind: LobbyType) -> Self {
+    pub fn kind(mut self, kind: LobbyKind) -> Self {
         self.inner.kind = kind;
         self
     }
@@ -293,8 +194,293 @@ impl UpdateLobbyBuilder {
     }
 }
 
+/// The logical comparison to use when comparing the value of the filter key in
+/// the lobby metadata against the value provided to compare it against
+///
+/// See the [API docs](https://discord.com/developers/docs/game-sdk/lobbies#data-models-lobbysearchcomparison-enum)
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
+#[repr(i8)]
+pub enum LobbySearchComparison {
+    LessThanOrEqual = -2,
+    LessThan = -1,
+    Equal = 0,
+    GreaterThan = 1,
+    GreaterThanOrEqual = 2,
+    NotEqual = 3,
+}
+
+/// The search distance from the current user's region, the [`LobbySearchDistance::Default`]
+/// is to search in the current user's region and adjacent regions.
+///
+/// See the [API docs](https://discord.com/developers/docs/game-sdk/lobbies#data-models-lobbysearchdistance-enum)
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
+#[repr(u8)]
+pub enum LobbySearchDistance {
+    /// Within the same region
+    Local = 0,
+    /// Within the same and adjacent regions
+    Default = 1,
+    /// Far distances, like US to EU
+    Extended = 2,
+    /// All regions
+    Global = 3,
+}
+
+impl Default for LobbySearchDistance {
+    fn default() -> Self {
+        Self::Default
+    }
+}
+
+/// Determines how the search value is cast before comparison
+///
+/// See the [API docs](https://discord.com/developers/docs/game-sdk/lobbies#data-models-lobbysearchcast-enum)
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
+#[repr(u8)]
+pub enum LobbySearchCast {
+    String = 1,
+    Number = 2,
+}
+
+#[derive(Serialize)]
+pub struct SearchFilter {
+    key: String,
+    comp: LobbySearchComparison,
+    cast: LobbySearchCast,
+    value: String,
+}
+
+#[derive(Serialize)]
+pub struct SearchSort {
+    key: String,
+    cast: LobbySearchCast,
+    value: String,
+}
+
+pub enum SearchKey<'md> {
+    /// The user id of the owner of the lobby
+    OwnerId,
+    /// The maximum capacity of the lobby
+    Capacity,
+    /// The number of available slots in the lobby
+    Slots,
+    /// A metadata key name
+    Metadata(&'md str),
+}
+
+impl<'md> From<&'md str> for SearchKey<'md> {
+    fn from(key: &'md str) -> Self {
+        Self::Metadata(key)
+    }
+}
+
+use std::fmt;
+
+impl<'md> fmt::Display for SearchKey<'md> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::OwnerId => f.write_str("owner_id"),
+            Self::Capacity => f.write_str("capacity"),
+            Self::Slots => f.write_str("slots"),
+            Self::Metadata(key) => write!(f, "metadata.{}", key),
+        }
+    }
+}
+
+pub enum SearchValue {
+    String(String),
+    Number(String),
+}
+
+impl SearchValue {
+    pub fn string(s: impl Into<String>) -> Self {
+        Self::String(s.into())
+    }
+
+    pub fn number<N>(n: N) -> Self
+    where
+        N: num_traits::PrimInt + fmt::Display,
+    {
+        Self::Number(n.to_string())
+    }
+
+    pub fn cast(&self) -> LobbySearchCast {
+        match self {
+            Self::String(_) => LobbySearchCast::String,
+            Self::Number(_) => LobbySearchCast::Number,
+        }
+    }
+}
+
+impl From<SearchValue> for String {
+    fn from(sv: SearchValue) -> Self {
+        match sv {
+            SearchValue::String(s) => s,
+            SearchValue::Number(s) => s,
+        }
+    }
+}
+
+/// A query used to [search](https://discord.com/developers/docs/game-sdk/lobbies#search)
+/// for lobbies that match a set of criteria.
+///
+/// By default, this will find a maximum of `25` lobbies in the same or adjacent
+/// regions as the current user.
+#[derive(Serialize)]
+pub struct SearchQuery {
+    filter: Vec<SearchFilter>,
+    sort: Vec<SearchSort>,
+    limit: u32,
+    distance: LobbySearchDistance,
+}
+
+impl SearchQuery {
+    /// Adds a filter to the query which compares the value of the specified key
+    /// with the specified comparison against the specified value.
+    ///
+    /// See the [API docs](https://discord.com/developers/docs/game-sdk/lobbies#lobbysearchqueryfilter)
+    pub fn add_filter<'md>(
+        mut self,
+        key: impl Into<SearchKey<'md>>,
+        comp: LobbySearchComparison,
+        value: SearchValue,
+    ) -> Self {
+        self.filter.push(SearchFilter {
+            key: key.into().to_string(),
+            comp,
+            cast: value.cast(),
+            value: value.into(),
+        });
+        self
+    }
+
+    /// Sorts the filtered lobbies based on "near-ness" of the specified key's
+    /// value to the specified sort value.
+    ///
+    /// See the [API docs](https://discord.com/developers/docs/game-sdk/lobbies#lobbysearchquerysort)
+    pub fn add_sort<'md>(mut self, key: impl Into<SearchKey<'md>>, value: SearchValue) -> Self {
+        self.sort.push(SearchSort {
+            key: key.into().to_string(),
+            cast: value.cast(),
+            value: value.into(),
+        });
+        self
+    }
+
+    /// Sets the maximum number of lobbies that can be returned by the search.
+    ///
+    /// See the [API docs](https://discord.com/developers/docs/game-sdk/lobbies#lobbysearchquerylimit)
+    pub fn limit(mut self, max_results: Option<std::num::NonZeroU32>) -> Self {
+        if let Some(mr) = max_results {
+            self.limit = mr.get();
+        }
+        self
+    }
+
+    /// Filters lobby results to within certain regions relative to the user's location.
+    ///
+    /// See the [API docs](https://discord.com/developers/docs/game-sdk/lobbies#lobbysearchquerydistance)
+    pub fn distance(mut self, distance: LobbySearchDistance) -> Self {
+        self.distance = distance;
+        self
+    }
+}
+
+impl Default for SearchQuery {
+    fn default() -> Self {
+        Self {
+            filter: Vec::new(),
+            sort: Vec::new(),
+            limit: 25,
+            distance: Default::default(),
+        }
+    }
+}
+
+#[derive(Serialize)]
+pub struct ConnectLobby {
+    pub id: LobbyId,
+    pub secret: String,
+}
+
+impl<'s> std::convert::TryFrom<&'s str> for ConnectLobby {
+    type Error = Error;
+
+    fn try_from(s: &'s str) -> Result<Self, Self::Error> {
+        s.find(':')
+            .and_then(|sep| {
+                let id = s[..sep].parse().ok()?;
+                let secret = s[sep + 1..].to_owned();
+
+                Some(Self { id, secret })
+            })
+            .ok_or(Error::NonCanonicalLobbyActivitySecret)
+    }
+}
+
+/// A message sent by a user to a lobby
+pub enum LobbyMessage {
+    Binary(Vec<u8>),
+    Text(String),
+}
+
+impl Serialize for LobbyMessage {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            Self::Binary(bin) => {
+                let mut data = String::from("data:text/plain;base64,");
+                base64::encode_config_buf(&bin, base64::STANDARD_NO_PAD, &mut data);
+
+                serializer.serialize_str(&data)
+            }
+            Self::Text(text) => serializer.serialize_str(&text),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for LobbyMessage {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        use serde::de;
+
+        struct Visitor;
+
+        impl<'de> de::Visitor<'de> for Visitor {
+            type Value = LobbyMessage;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                formatter.write_str("a string")
+            }
+
+            fn visit_borrowed_str<E>(self, v: &'de str) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Ok(match v.strip_prefix("data:text/plain;base64,") {
+                    Some(encoded) => {
+                        let bin = base64::decode_config(encoded, base64::STANDARD_NO_PAD)
+                            .map_err(de::Error::custom)?;
+                        LobbyMessage::Binary(bin)
+                    }
+                    None => LobbyMessage::Text(v.to_owned()),
+                })
+            }
+        }
+
+        deserializer.deserialize_str(Visitor)
+    }
+}
+
 impl crate::Discord {
-    /// Creates a new [`Lobby`], owned by the current [`User`].
+    /// Creates a new [`Lobby`], automatically joining the current [`User`] and
+    /// making them the owner of the [`Lobby`].
+    ///
+    /// See the [API docs](https://discord.com/developers/docs/game-sdk/lobbies#createlobby)
     pub async fn create_lobby(&self, args: CreateLobbyBuilder) -> Result<Lobby, Error> {
         let rx = self.send_rpc(CommandKind::CreateLobby, args.inner)?;
 
@@ -330,6 +516,15 @@ impl crate::Discord {
             .ok_or(Error::Discord(DiscordErr::UnownedLobby(lobby_id)))
     }
 
+    /// Updates a lobby.
+    ///
+    /// # Errors
+    ///
+    /// This call has a rate limit of 10 updates per 5 seconds. If you fear you
+    /// might hit that, it may be a good idea to batch your lobby updates into
+    /// transactions.
+    ///
+    /// See the [API docs](https://discord.com/developers/docs/game-sdk/lobbies#updatelobby)
     pub async fn update_lobby(&self, args: UpdateLobbyBuilder) -> Result<Lobby, Error> {
         // The response for the lobby update unfortunately doesn't return any
         // actual data for the lobby, so we store the new state and set it once
@@ -364,6 +559,73 @@ impl crate::Discord {
                     Err(Error::Discord(DiscordErr::UnownedLobby(lobby_id)))
                 }
             }
+        })
+    }
+
+    /// Deletes the specified lobby.
+    ///
+    /// See the [API docs](https://discord.com/developers/docs/game-sdk/lobbies#deletelobby)
+    pub async fn delete_lobby(&self, id: LobbyId) -> Result<(), Error> {
+        #[derive(Serialize)]
+        struct DeleteLobby {
+            id: LobbyId,
+        }
+
+        let rx = self.send_rpc(CommandKind::DeleteLobby, DeleteLobby { id })?;
+
+        handle_response!(rx, Command::DeleteLobby => {
+            Ok(())
+        })
+    }
+
+    /// Connects to the specified lobby, which comprises 2 pieces of information,
+    /// the lobby identifier, and the lobby secret.
+    ///
+    /// See the [API docs](https://discord.com/developers/docs/game-sdk/lobbies#connectlobby)
+    pub async fn connect_lobby(&self, lobby: ConnectLobby) -> Result<Lobby, Error> {
+        let rx = self.send_rpc(CommandKind::ConnectToLobby, lobby)?;
+
+        handle_response!(rx, Command::ConnectToLobby(lobby) => {
+            Ok(lobby)
+        })
+    }
+
+    /// Sends a message to the lobby on behalf of the current user. The
+    ///
+    /// # Errors
+    ///
+    /// You must be connected to the lobby you are messaging.
+    /// This method has a rate limit of 10 messages per 5 seconds.
+    ///
+    /// See the [API docs](https://discord.com/developers/docs/game-sdk/lobbies#sendlobbymessage)
+    pub async fn send_lobby_message(
+        &self,
+        lobby_id: LobbyId,
+        data: LobbyMessage,
+    ) -> Result<(), Error> {
+        #[derive(Serialize)]
+        struct SendToLobby {
+            lobby_id: LobbyId,
+            data: LobbyMessage,
+        }
+
+        let rx = self.send_rpc(CommandKind::SendToLobby, SendToLobby { lobby_id, data })?;
+
+        handle_response!(rx, Command::SendToLobby => {
+            Ok(())
+        })
+    }
+
+    /// Searches available lobbies based on the search criteria
+    ///
+    /// See the [API docs](https://discord.com/developers/docs/game-sdk/lobbies#search)
+    pub async fn search_lobbies(&self, query: SearchQuery) -> Result<Vec<Lobby>, Error> {
+        let rx = self.send_rpc(CommandKind::SearchLobbies, query)?;
+
+        handle_response!(rx, Command::SearchLobbies(lobbies) => {
+            *self.searched_lobbies.write() = lobbies.clone();
+
+            Ok(lobbies)
         })
     }
 }

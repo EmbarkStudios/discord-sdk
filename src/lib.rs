@@ -80,22 +80,23 @@
 
 #[macro_use]
 mod util;
+mod activity;
 pub mod error;
 mod handler;
 mod io;
 mod lobby;
 pub mod registration;
-mod rich_presence;
 mod types;
 
+pub use activity::{ActivityBuilder, Assets, IntoTimestamp, PartyPrivacy, Secrets};
+pub use error::{DiscordApiErr, DiscordErr, Error};
 pub use lobby::{Lobby, LobbyId};
-pub use rich_presence::{Assets, IntoTimestamp, PartyPrivacy, RichPresenceBuilder, Secrets};
 use types::{Command, CommandKind};
 pub use types::{Event, JoinReply, User};
 pub type AppId = i64;
 
 use crossbeam_channel as cc;
-pub use error::{DiscordApiErr, DiscordErr, Error};
+use parking_lot::{Mutex, RwLock};
 
 /// The details on the [Application](https://discord.com/developers/docs/game-sdk/sdk-starter-guide#get-set-up)
 /// you've created in Discord.
@@ -109,6 +110,16 @@ pub enum DiscordApp {
     PlainId(AppId),
 }
 
+bitflags::bitflags! {
+    pub struct Subscriptions: u32 {
+        const ACTIVITY = 0x1;
+        const LOBBY = 0x2;
+        const USER = 0x4;
+
+        const ALL = Self::ACTIVITY.bits | Self::LOBBY.bits | Self::USER.bits;
+    }
+}
+
 pub struct Discord {
     nonce: std::sync::atomic::AtomicUsize,
     /// Queue for messages to be sent to Discord
@@ -120,16 +131,20 @@ pub struct Discord {
     /// The application identifier. This is used for some RPCs sent to Discord.
     app_id: AppId,
     /// The lobbies owned by the current user
-    owned_lobbies: parking_lot::RwLock<Vec<Lobby>>,
+    owned_lobbies: RwLock<Vec<Lobby>>,
     /// The lobbies returned by the latest search
-    searched_lobbies: parking_lot::RwLock<Vec<Lobby>>,
+    searched_lobbies: RwLock<Vec<Lobby>>,
     state: State,
 }
 
 impl Discord {
     /// Creates a new Discord connection for the specified application, providing
     /// a [`DiscordHandler`] which can handle events as they arrive from Discord
-    pub fn with_handler(app: DiscordApp, handler: Box<dyn DiscordHandler>) -> Result<Self, Error> {
+    pub fn new(
+        app: DiscordApp,
+        subscriptions: Subscriptions,
+        handler: Box<dyn DiscordHandler>,
+    ) -> Result<Self, Error> {
         let app_id = match app {
             DiscordApp::PlainId(id) => id,
             DiscordApp::Register(inner) => {
@@ -139,11 +154,17 @@ impl Discord {
             }
         };
 
+        let io_task = io::start_io_task(app_id);
+
         let state = State::default();
 
-        let io_task = io::start_io_task(app_id);
-        let handler_task =
-            handler::handler_task(handler, io_task.rrx, io_task.stx.clone(), state.clone());
+        let handler_task = handler::handler_task(
+            handler,
+            subscriptions,
+            io_task.stx.clone(),
+            io_task.rrx,
+            state.clone(),
+        );
 
         Ok(Self {
             nonce: std::sync::atomic::AtomicUsize::new(1),
@@ -192,8 +213,9 @@ impl Discord {
             .lock()
             .push(NotifyItem { nonce, tx, cmd });
 
-        let presence = io::serialize_message(io::OpCode::Frame, &rpc)?;
-        self.send_queue.send(Some(presence))?;
+        let mut buffer = Vec::with_capacity(128);
+        io::serialize_message(io::OpCode::Frame, &rpc, &mut buffer)?;
+        self.send_queue.send(Some(buffer))?;
 
         Ok(rx)
     }
@@ -208,7 +230,6 @@ pub trait DiscordHandler: Send + Sync {
     async fn on_error(&self, error: Error);
 }
 
-use parking_lot::{Mutex, RwLock};
 use std::sync::Arc;
 
 pub(crate) struct NotifyItem {
@@ -226,8 +247,6 @@ pub(crate) struct NotifyItem {
 /// State shared between the top level [`Discord`] object and the handler task
 #[derive(Clone)]
 pub(crate) struct State {
-    /// The local Discord user
-    user: Arc<RwLock<Option<User>>>,
     /// Queue of RPCs sent to Discord that are awaiting a response
     notify_queue: Arc<Mutex<Vec<NotifyItem>>>,
 }
@@ -235,7 +254,6 @@ pub(crate) struct State {
 impl Default for State {
     fn default() -> Self {
         Self {
-            user: Arc::new(RwLock::new(None)),
             notify_queue: Arc::new(Mutex::new(Vec::new())),
         }
     }

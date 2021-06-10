@@ -1,10 +1,11 @@
+use std::io::Seek;
+
 use crate::{types, Error};
 use crossbeam_channel as cc;
-use std::convert::TryFrom;
 
 const RPC_VERSION: u32 = 1;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, num_enum::TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u32)]
 pub(crate) enum OpCode {
     Handshake = 0,
@@ -34,10 +35,19 @@ fn parse_frame_header(header: [u8; 8]) -> Result<(OpCode, u32), Error> {
         u32::from_le_bytes(bytes)
     };
 
-    let op_code = OpCode::try_from(op_code).map_err(|_err| Error::UnknownVariant {
-        kind: "OpCode",
-        value: op_code,
-    })?;
+    let op_code = match op_code {
+        0 => OpCode::Handshake,
+        1 => OpCode::Frame,
+        2 => OpCode::Close,
+        3 => OpCode::Ping,
+        4 => OpCode::Pong,
+        unknown => {
+            return Err(Error::UnknownVariant {
+                kind: "OpCode",
+                value: unknown,
+            })
+        }
+    };
 
     let len = {
         let mut bytes = [0; 4];
@@ -52,17 +62,36 @@ fn parse_frame_header(header: [u8; 8]) -> Result<(OpCode, u32), Error> {
 pub(crate) fn serialize_message(
     op_code: OpCode,
     data: &impl serde::Serialize,
-) -> Result<Vec<u8>, Error> {
-    let mut msg = Vec::with_capacity(128);
-    msg.extend_from_slice(&(op_code as u32).to_le_bytes());
-    msg.extend_from_slice(&[0; 4]);
+    buffer: &mut Vec<u8>,
+) -> Result<(), Error> {
+    let start = buffer.len();
 
-    serde_json::to_writer(&mut msg, data)?;
+    buffer.extend_from_slice(&(op_code as u32).to_le_bytes());
+    buffer.extend_from_slice(&[0; 4]);
 
-    let data_len = (msg.len() - 8) as u32;
-    msg.as_mut_slice()[4..8].copy_from_slice(&data_len.to_le_bytes());
+    // We have to pass the whole vec, but since serde_json::to_writer doesn't
+    // give us the Write back we have to wrap it in a cursor, but then we need
+    // to advance it to point in the buffer we actually want to write the JSON
+    // to, otherwise it will overwrite the beginning and make everyone sad
+    let mut cursor = std::io::Cursor::new(buffer);
+    cursor
+        .seek(std::io::SeekFrom::Start(start as u64 + 8))
+        .unwrap();
 
-    Ok(msg)
+    match serde_json::to_writer(&mut cursor, data) {
+        Ok(_) => {
+            let buffer = cursor.into_inner();
+            let data_len = (buffer.len() - start - 8) as u32;
+            buffer[start + 4..start + 8].copy_from_slice(&data_len.to_le_bytes());
+        }
+        Err(e) => {
+            let buffer = cursor.into_inner();
+            buffer.truncate(start);
+            Err(e)?;
+        }
+    }
+
+    Ok(())
 }
 
 fn make_message(op_code: OpCode, data: &[u8]) -> Vec<u8> {
@@ -153,13 +182,17 @@ pub(crate) fn start_io_task(app_id: i64) -> IoTask {
         ) -> Result<(), Error> {
             // We always send the handshake immediately on establishing a connection,
             // Discord should then respond with a `Ready` RPC
-            stx.send(Some(serialize_message(
+            let mut handshake = Vec::with_capacity(128);
+            serialize_message(
                 OpCode::Handshake,
                 &Handshake {
                     version: RPC_VERSION,
                     client_id: app_id.to_string(),
                 },
-            )?))?;
+                &mut handshake,
+            )?;
+
+            stx.send(Some(handshake))?;
 
             struct ReadBuf<const N: usize> {
                 buf: [u8; N],
@@ -218,9 +251,7 @@ pub(crate) fn start_io_task(app_id: i64) -> IoTask {
                                                 ));
                                             }
                                             OpCode::Frame => {
-                                                if rtx
-                                                    .try_send(IoMsg::Frame(data_buf.clone()))
-                                                    .is_err()
+                                                if rtx.send(IoMsg::Frame(data_buf.clone())).is_err()
                                                 {
                                                     tracing::error!(
                                                         "Dropped RPC as queue is too full"

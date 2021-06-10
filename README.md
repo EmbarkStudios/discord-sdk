@@ -1,5 +1,4 @@
-<!--- FIXME: Pick an emoji! --->
-# 🌻 opensource-template
+# ⚔️ discord-sdk
 
 <!--- FIXME: Update crate, repo and CI workflow names here! Remove any that are not relevant --->
 [![Embark](https://img.shields.io/badge/embark-open%20source-blueviolet.svg)](https://embark.dev)

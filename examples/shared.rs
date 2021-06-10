@@ -10,7 +10,7 @@ impl ds::DiscordHandler for Printer {
         println!("received event form discord: {:#?}", event);
 
         match event {
-            ds::Event::Ready { user } => {
+            ds::Event::Ready { user, .. } => {
                 self.0.send(Some(user)).await;
             }
             ds::Event::Disconnected { .. } => {
@@ -26,6 +26,15 @@ impl ds::DiscordHandler for Printer {
 }
 
 pub fn make_client(tx: tokio::sync::mpsc::Sender<Option<ds::User>>) -> ds::Discord {
-    ds::Discord::with_handler(ds::DiscordApp::PlainId(APP_ID), Box::new(Printer(tx)))
-        .expect("unable to create discord client")
+    tracing_subscriber::fmt()
+        .compact()
+        .with_max_level(tracing::Level::TRACE)
+        .init();
+
+    ds::Discord::new(
+        ds::DiscordApp::PlainId(APP_ID),
+        ds::Subscriptions::ACTIVITY,
+        Box::new(Printer(tx)),
+    )
+    .expect("unable to create discord client")
 }

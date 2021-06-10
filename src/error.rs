@@ -30,6 +30,8 @@ pub enum Error {
     AppRegistration(#[from] anyhow::Error),
     #[error(transparent)]
     Discord(#[from] DiscordErr),
+    #[error("a lobby activity join was not of the form '<lobby_id>:<lobby_secret>'")]
+    NonCanonicalLobbyActivitySecret,
 }
 
 impl<T> From<crossbeam_channel::TrySendError<T>> for Error {
@@ -96,6 +98,8 @@ pub enum DiscordApiErr {
     },
     #[error("Discord sent an error response with no actual data")]
     NoErrorData,
+    #[error("we sent a malformed RPC message to Discord")]
+    MalformedCommand,
 }
 
 impl<'stack> From<Option<crate::types::ErrorPayloadStack<'stack>>> for DiscordApiErr {
@@ -121,6 +125,7 @@ impl<'stack> From<Option<crate::types::ErrorPayloadStack<'stack>>> for DiscordAp
                         4002 => {
                             to_known("Already connected to lobby.", Self::AlreadyConnectedToLobby)
                         }
+                        1003 => to_known("protocol error", Self::MalformedCommand),
                         _ => Self::Unknown {
                             code,
                             message: message.map(|s| s.to_owned()),
