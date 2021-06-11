@@ -213,7 +213,7 @@ fn process_frame(data_buf: Vec<u8>) -> Msg {
                 Err(e) => Msg::Error {
                     nonce: rm.nonce,
                     error: crate::Error::Discord(crate::DiscordErr::Api(
-                        crate::DiscordApiErr::Unknown {
+                        crate::DiscordApiErr::Generic {
                             code: None,
                             message: Some(format!("failed to deserialize error: {}", e)),
                         },
@@ -290,6 +290,8 @@ fn subscribe_task(subs: crate::Subscriptions, stx: cc::Sender<Option<Vec<u8>>>) 
                 EventKind::LobbyMemberUpdate,
                 EventKind::LobbyMessage,
                 EventKind::LobbyUpdate,
+                EventKind::SpeakingStart,
+                EventKind::SpeakingStop,
             ]
             .iter()
         } else {

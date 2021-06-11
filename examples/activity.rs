@@ -1,14 +1,13 @@
 use discord_sdk as ds;
 
+#[path = "shared._rs"]
 mod shared;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    let (tx, mut rx) = tokio::sync::mpsc::channel(10);
-    let client = shared::make_client(tx);
+    let (client, user) = shared::make_client(ds::Subscriptions::ACTIVITY).await;
 
-    tracing::info!("waiting for handshake...");
-    rx.recv().await;
+    tracing::info!("connected to Discord, local user is {:#?}", user);
 
     let rp = ds::ActivityBuilder::default()
         .details("Fruit Tarts".to_owned())

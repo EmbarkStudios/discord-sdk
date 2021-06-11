@@ -84,13 +84,12 @@ mod activity;
 pub mod error;
 mod handler;
 mod io;
-mod lobby;
+pub mod lobby;
 pub mod registration;
 mod types;
 
 pub use activity::{ActivityBuilder, Assets, IntoTimestamp, PartyPrivacy, Secrets};
 pub use error::{DiscordApiErr, DiscordErr, Error};
-pub use lobby::{Lobby, LobbyId};
 use types::{Command, CommandKind};
 pub use types::{Event, JoinReply, User};
 pub type AppId = i64;
@@ -129,9 +128,9 @@ pub struct Discord {
     /// The handle to the task dispatching messages to the DiscordHandler
     handler_task: tokio::task::JoinHandle<()>,
     /// The lobbies owned by the current user
-    owned_lobbies: RwLock<Vec<Lobby>>,
+    owned_lobbies: RwLock<Vec<lobby::Lobby>>,
     /// The lobbies returned by the latest search
-    searched_lobbies: RwLock<Vec<Lobby>>,
+    searched_lobbies: RwLock<Vec<lobby::Lobby>>,
     state: State,
 }
 

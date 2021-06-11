@@ -1,4 +1,7 @@
-use crate::{Error, Lobby};
+use crate::{
+    lobby::{Lobby, LobbyId},
+    Error,
+};
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 
@@ -22,7 +25,10 @@ pub struct ErrorPayload {
 #[derive(Deserialize)]
 pub(crate) struct ErrorPayloadStack<'stack> {
     pub(crate) code: Option<u32>,
-    pub(crate) message: Option<&'stack str>,
+    /// See https://github.com/serde-rs/serde/issues/1413#issuecomment-494892266
+    /// for why this is a Cow, Discord occasionally sends escaped JSON in error
+    /// messages
+    pub(crate) message: Option<std::borrow::Cow<'stack, str>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -90,6 +96,24 @@ pub enum Event {
     /// Fired when the connection has been interrupted between us and Discord
     #[serde(skip)]
     Disconnected { reason: String },
+    /// Event fired when a user starts speaking in a lobby voice channel.
+    ///
+    /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onspeaking)
+    SpeakingStart {
+        /// The lobby with the voice channel
+        lobby_id: LobbyId,
+        /// The user in the lobby that started speaking
+        user_id: UserId,
+    },
+    /// Event fired when a user stops speaking in a lobby voice channel.
+    ///
+    /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onspeaking)
+    SpeakingStop {
+        /// The lobby with the voice channel
+        lobby_id: LobbyId,
+        /// The user in the lobby that started speaking
+        user_id: UserId,
+    },
 }
 
 /// The response to an RPC sent by us.
@@ -104,6 +128,8 @@ pub(crate) enum Command {
     ConnectToLobby(Lobby),
     SendToLobby,
     Subscribe { evt: EventKind },
+    ConnectToLobbyVoice,
+    DisconnectFromLobbyVoice,
 }
 
 /// An RPC sent from Discord as JSON, in response to an RPC sent by us.
@@ -161,6 +187,8 @@ pub(crate) enum EventKind {
     LobbyMemberDisconnect,
     LobbyMessage,
     Error,
+    SpeakingStart,
+    SpeakingStop,
 }
 
 /// The reply to send to the [`User`] who sent a join request
@@ -200,6 +228,10 @@ pub enum CommandKind {
     ConnectToLobby,
     /// RPC to send a message to a lobby
     SendToLobby,
+    /// RPC sent to join the current user to the voice channel of the specified lobby
+    ConnectToLobbyVoice,
+    /// RPC sent to disconnect the current user from the voice channel of the specified lobby
+    DisconnectFromLobbyVoice,
 }
 
 /// A Discord user
@@ -390,7 +422,7 @@ pub(crate) mod string {
 /// Discord uses [snowflakes](https://discord.com/developers/docs/reference#snowflakes)
 /// for most/all of their unique identifiers, including users, lobbies, etc
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Ord, Eq)]
-pub struct Snowflake(u64);
+pub struct Snowflake(pub u64);
 
 impl Snowflake {
     pub fn timestamp(self) -> chrono::DateTime<chrono::Utc> {

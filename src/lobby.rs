@@ -1,6 +1,6 @@
 use crate::{
     types::{Command, CommandKind, Snowflake, UserId},
-    AppId, DiscordErr, Error,
+    DiscordErr, Error,
 };
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
@@ -45,7 +45,6 @@ pub enum LobbyKind {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Lobby {
-    pub application_id: AppId,
     pub capacity: u32,
     pub id: LobbyId,
     pub locked: bool,
@@ -78,7 +77,8 @@ struct LobbyArgs {
     #[serde(rename = "type")]
     kind: LobbyKind,
     /// Whether or not the lobby can be joined
-    locked: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    locked: Option<bool>,
     /// The ID of the user to make the owner, only set when modifying
     #[serde(skip_serializing_if = "Option::is_none")]
     owner: Option<UserId>,
@@ -90,7 +90,7 @@ impl LobbyArgs {
     fn modify(self, lobby: &mut Lobby) {
         lobby.capacity = self.capacity;
         lobby.kind = self.kind;
-        lobby.locked = self.locked;
+        lobby.locked = self.locked.unwrap_or(false);
         if let Some(owner) = self.owner {
             lobby.owner_id = owner;
         }
@@ -107,7 +107,7 @@ impl Default for LobbyArgs {
             id: None,
             capacity: 16,
             kind: LobbyKind::Private,
-            locked: false,
+            locked: None,
             owner: None,
             metadata: Default::default(),
         }
@@ -138,7 +138,7 @@ impl CreateLobbyBuilder {
 
     #[inline]
     pub fn locked(mut self, locked: bool) -> Self {
-        self.inner.locked = locked;
+        self.inner.locked = Some(locked);
         self
     }
 
@@ -169,7 +169,7 @@ impl UpdateLobbyBuilder {
 
     #[inline]
     pub fn locked(mut self, locked: bool) -> Self {
-        self.inner.locked = locked;
+        self.inner.locked = Some(locked);
         self
     }
 
@@ -245,7 +245,7 @@ pub enum LobbySearchCast {
 #[derive(Serialize)]
 pub struct SearchFilter {
     key: String,
-    comp: LobbySearchComparison,
+    comparison: LobbySearchComparison,
     cast: LobbySearchCast,
     value: String,
 }
@@ -341,12 +341,12 @@ impl SearchQuery {
     pub fn add_filter<'md>(
         mut self,
         key: impl Into<SearchKey<'md>>,
-        comp: LobbySearchComparison,
+        comparison: LobbySearchComparison,
         value: SearchValue,
     ) -> Self {
         self.filter.push(SearchFilter {
             key: key.into().to_string(),
-            comp,
+            comparison,
             cast: value.cast(),
             value: value.into(),
         });
@@ -475,6 +475,12 @@ impl<'de> Deserialize<'de> for LobbyMessage {
     }
 }
 
+/// Used by different command types when performing an action on a specific lobby
+#[derive(Serialize)]
+struct LobbyAction {
+    id: LobbyId,
+}
+
 impl crate::Discord {
     /// Creates a new [`Lobby`], automatically joining the current [`User`] and
     /// making them the owner of the [`Lobby`].
@@ -502,7 +508,7 @@ impl crate::Discord {
                         id: Some(lobby.id),
                         capacity: lobby.capacity,
                         kind: lobby.kind,
-                        locked: lobby.locked,
+                        locked: if lobby.locked { Some(true) } else { None },
                         owner: Some(lobby.owner_id),
                         metadata: lobby.metadata.clone(),
                     };
@@ -565,12 +571,7 @@ impl crate::Discord {
     ///
     /// See the [API docs](https://discord.com/developers/docs/game-sdk/lobbies#deletelobby)
     pub async fn delete_lobby(&self, id: LobbyId) -> Result<(), Error> {
-        #[derive(Serialize)]
-        struct DeleteLobby {
-            id: LobbyId,
-        }
-
-        let rx = self.send_rpc(CommandKind::DeleteLobby, DeleteLobby { id })?;
+        let rx = self.send_rpc(CommandKind::DeleteLobby, LobbyAction { id })?;
 
         handle_response!(rx, Command::DeleteLobby => {
             Ok(())
@@ -611,6 +612,37 @@ impl crate::Discord {
         let rx = self.send_rpc(CommandKind::SendToLobby, SendToLobby { lobby_id, data })?;
 
         handle_response!(rx, Command::SendToLobby => {
+            Ok(())
+        })
+    }
+
+    /// Connects to the voice channel of the specified lobby.
+    ///
+    /// # Errors
+    ///
+    /// The user must be connected to the specified lobby.
+    ///
+    /// See the [API docs](https://discord.com/developers/docs/game-sdk/lobbies#connectvoice)
+    pub async fn connect_lobby_voice(&self, id: LobbyId) -> Result<(), Error> {
+        let rx = self.send_rpc(CommandKind::ConnectToLobbyVoice, LobbyAction { id })?;
+
+        handle_response!(rx, Command::ConnectToLobbyVoice => {
+            Ok(())
+        })
+    }
+
+    /// Disconnects from the voice channel of the specified lobby.
+    ///
+    /// # Errors
+    ///
+    /// The user must be connected to the specified lobby, and be connected to
+    /// the voice channel already
+    ///
+    /// See the [API docs](https://discord.com/developers/docs/game-sdk/lobbies#disconnectvoice)
+    pub async fn disconnect_lobby_voice(&self, id: LobbyId) -> Result<(), Error> {
+        let rx = self.send_rpc(CommandKind::ConnectToLobbyVoice, LobbyAction { id })?;
+
+        handle_response!(rx, Command::ConnectToLobbyVoice => {
             Ok(())
         })
     }

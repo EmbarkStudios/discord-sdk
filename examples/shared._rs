@@ -11,10 +11,10 @@ impl ds::DiscordHandler for Printer {
 
         match event {
             ds::Event::Ready { user, .. } => {
-                self.0.send(Some(user)).await;
+                self.0.send(Some(user)).await.unwrap();
             }
             ds::Event::Disconnected { .. } => {
-                self.0.send(None).await;
+                self.0.send(None).await.unwrap();
             }
             _ => {}
         }
@@ -25,16 +25,23 @@ impl ds::DiscordHandler for Printer {
     }
 }
 
-pub fn make_client(tx: tokio::sync::mpsc::Sender<Option<ds::User>>) -> ds::Discord {
+pub async fn make_client(subs: ds::Subscriptions) -> (ds::Discord, ds::User) {
+    let (tx, mut rx) = tokio::sync::mpsc::channel(1);
+
     tracing_subscriber::fmt()
         .compact()
         .with_max_level(tracing::Level::TRACE)
         .init();
 
-    ds::Discord::new(
-        ds::DiscordApp::PlainId(APP_ID),
-        ds::Subscriptions::ACTIVITY,
-        Box::new(Printer(tx)),
-    )
-    .expect("unable to create discord client")
+    let discord = ds::Discord::new(ds::DiscordApp::PlainId(APP_ID), subs, Box::new(Printer(tx)))
+        .expect("unable to create discord client");
+
+    tracing::info!("waiting for handshake...");
+    let user = rx
+        .recv()
+        .await
+        .unwrap()
+        .expect("user should have been sent after handshake");
+
+    (discord, user)
 }

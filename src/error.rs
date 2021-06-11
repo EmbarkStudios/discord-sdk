@@ -76,7 +76,7 @@ impl Error {
 #[derive(thiserror::Error, Debug)]
 pub enum DiscordErr {
     #[error("attempted to mutate lobby '{0}' not owned by the current user")]
-    UnownedLobby(crate::LobbyId),
+    UnownedLobby(crate::lobby::LobbyId),
     #[error("attempted to update an unknown lobby")]
     UnknownLobby,
     #[error("expected response of '{expected:?}' for request '{nonce}' but received '{actual:?}'")]
@@ -98,15 +98,19 @@ pub enum DiscordErr {
 pub enum DiscordApiErr {
     #[error("already connected to lobby")]
     AlreadyConnectedToLobby,
-    #[error("{code:?}: error \"{message:?}\" not specifically known at this time")]
-    Unknown {
-        code: Option<u32>,
-        message: Option<String>,
-    },
+    #[error("Discord encountered an unknown error processing the command")]
+    Unknown,
     #[error("Discord sent an error response with no actual data")]
     NoErrorData,
     #[error("we sent a malformed RPC message to Discord")]
     MalformedCommand,
+    #[error("{code:?}: error \"{message:?}\" not specifically known at this time")]
+    Generic {
+        code: Option<u32>,
+        message: Option<String>,
+    },
+    #[error("{reason}")]
+    InvalidCommand { reason: String },
 }
 
 impl<'stack> From<Option<crate::types::ErrorPayloadStack<'stack>>> for DiscordApiErr {
@@ -117,30 +121,35 @@ impl<'stack> From<Option<crate::types::ErrorPayloadStack<'stack>>> for DiscordAp
                 let message = payload.message;
 
                 let to_known = |expected: &'static str, err: Self| -> Self {
-                    if message == Some(expected) {
+                    if message.as_deref() == Some(expected) {
                         err
                     } else {
-                        Self::Unknown {
+                        Self::Generic {
                             code,
-                            message: message.map(|s| s.to_owned()),
+                            message: message.as_ref().map(|s| s.to_string()),
                         }
                     }
                 };
 
                 match payload.code {
                     Some(inner) => match inner {
+                        1000 => to_known("Unknown Error", Self::Unknown),
+                        1003 => to_known("protocol error", Self::MalformedCommand),
+                        4000 => Self::InvalidCommand {
+                            reason: message
+                                .map_or_else(|| "unknown problem".to_owned(), |s| s.into_owned()),
+                        },
                         4002 => {
                             to_known("Already connected to lobby.", Self::AlreadyConnectedToLobby)
                         }
-                        1003 => to_known("protocol error", Self::MalformedCommand),
-                        _ => Self::Unknown {
+                        _ => Self::Generic {
                             code,
-                            message: message.map(|s| s.to_owned()),
+                            message: message.map(|s| s.into_owned()),
                         },
                     },
-                    None => Self::Unknown {
+                    None => Self::Generic {
                         code,
-                        message: message.map(|s| s.to_owned()),
+                        message: message.map(|s| s.into_owned()),
                     },
                 }
             }
