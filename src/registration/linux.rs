@@ -3,7 +3,7 @@ use crate::Error;
 pub fn register_app(app: super::Application) -> Result<(), Error> {
     use super::LaunchCommand;
 
-    fn inner(app: super::Application) -> anyhow::Result<(), anyhow::Error> {
+    fn inner(app: super::Application) -> anyhow::Result<()> {
         use anyhow::Context as _;
 
         let mut desktop_path = app_dirs2::get_data_root(app_dirs2::AppDataType::UserData)

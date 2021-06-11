@@ -1,9 +1,12 @@
-use super::LaunchCommand;
-use ark_error::anyhow::{self, Context as _};
-use winreg::{enums::HKEY_CURRENT_USER, RegKey};
+use crate::Error;
 
-pub fn register_app(app: super::Application) -> anyhow::Result<()> {
-    fn inner(app: super::Application) -> anyhow::Result<(), anyhow::Error> {
+pub fn register_app(app: super::Application) -> Result<(), Error> {
+    use super::LaunchCommand;
+
+    fn inner(app: super::Application) -> anyhow::Result<()> {
+        use anyhow::Context as _;
+        use winreg::{enums::HKEY_CURRENT_USER, RegKey};
+
         let hkcu = RegKey::predef(HKEY_CURRENT_USER);
 
         let mut icon_path = std::env::current_exe()

@@ -1,9 +1,11 @@
-use super::LaunchCommand;
-use anyhow::{self, ensure, Context as _};
 use std::path::PathBuf;
 
-pub fn register_app(app: super::Application) -> anyhow::Result<()> {
-    fn inner(app: super::Application) -> anyhow::Result<(), anyhow::Error> {
+pub fn register_app(app: super::Application) -> Result<(), Error> {
+    use super::LaunchCommand;
+
+    fn inner(app: super::Application) -> anyhow::Result<()> {
+        use anyhow::{self, ensure, Context as _};
+
         match app.command {
             LaunchCommand::Url(url) => {
                 create_shim(app.id, url.into())?;
