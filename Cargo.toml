@@ -11,6 +11,11 @@ repository = "https://github.com/EmbarkStudios/discord-sdk"
 keywords = ["discord", "games"]
 readme = "README.md"
 
+[features]
+# Enables tests that require 2 running Discord applications (stable, canary, or PTB)
+# with a logged in user, see https://discord.com/developers/docs/game-sdk/sdk-starter-guide#testing-locally-with-two-clients
+local-testing = []
+
 [dependencies]
 anyhow = "1.0"
 app_dirs2 = "2.3"
