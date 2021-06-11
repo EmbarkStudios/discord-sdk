@@ -149,7 +149,6 @@ impl CreateLobbyBuilder {
     }
 }
 
-#[derive(Default)]
 pub struct UpdateLobbyBuilder {
     inner: LobbyArgs,
 }
@@ -254,7 +253,7 @@ pub struct SearchFilter {
 pub struct SearchSort {
     key: String,
     cast: LobbySearchCast,
-    value: String,
+    near_value: String,
 }
 
 pub enum SearchKey<'md> {
@@ -361,7 +360,7 @@ impl SearchQuery {
         self.sort.push(SearchSort {
             key: key.into().to_string(),
             cast: value.cast(),
-            value: value.into(),
+            near_value: value.into(),
         });
         self
     }
@@ -587,6 +586,17 @@ impl crate::Discord {
 
         handle_response!(rx, Command::ConnectToLobby(lobby) => {
             Ok(lobby)
+        })
+    }
+
+    /// Disconnects the current user from a lobby.
+    ///
+    /// See the [API docs](https://discord.com/developers/docs/game-sdk/lobbies#disconnectlobby)
+    pub async fn disconnect_lobby(&self, id: LobbyId) -> Result<(), Error> {
+        let rx = self.send_rpc(CommandKind::DisconnectFromLobby, LobbyAction { id })?;
+
+        handle_response!(rx, Command::DisconnectFromLobby => {
+            Ok(())
         })
     }
 

@@ -126,6 +126,22 @@ pub(crate) fn start_io_task(app_id: i64) -> IoTask {
             .or_else(|_| std::env::var("TEMP"))
             .unwrap_or_else(|_| "/tmp".to_owned());
 
+        #[cfg(feature = "local-testing")]
+        if let Ok(id) = std::env::var("DISCORD_INSTANCE_ID") {
+            let socket_path = format!("{}/discord-ipc-{}", tmp_path, id);
+
+            return match tokio::net::UnixStream::connect(&socket_path).await {
+                Ok(stream) => {
+                    tracing::debug!("connected to {}!", socket_path);
+                    Ok(stream)
+                }
+                Err(e) => {
+                    tracing::error!("Unable to connect to {}: {}", socket_path, e);
+                    Err(Error::io("connecting to socket", e))
+                }
+            };
+        }
+
         // Discord just uses a simple round robin approach to finding a socket to use
         for seq in 0..10i32 {
             let socket_path = format!("{}/discord-ipc-{}", tmp_path, seq);
@@ -136,7 +152,7 @@ pub(crate) fn start_io_task(app_id: i64) -> IoTask {
                     return Ok(stream);
                 }
                 Err(e) => {
-                    tracing::debug!("Unable to connect to {}: {}", socket_path, e);
+                    tracing::trace!("Unable to connect to {}: {}", socket_path, e);
                 }
             }
         }
@@ -145,7 +161,23 @@ pub(crate) fn start_io_task(app_id: i64) -> IoTask {
     }
 
     #[cfg(windows)]
-    async fn connect() -> anyhow::Result<tokio::net::NamedPipe> {
+    async fn connect() -> Result<tokio::net::NamedPipe, Error> {
+        #[cfg(feature = "local-testing")]
+        if let Ok(id) = std::env::var("DISCORD_INSTANCE_ID") {
+            let socket_path = format!("\\\\?\\pipe\\discord-ipc-{}", id);
+
+            return match tokio::net::NamedPipe::connect(&socket_path).await {
+                Ok(stream) => {
+                    tracing::debug!("connected to {}!", socket_path);
+                    Ok(stream)
+                }
+                Err(e) => {
+                    tracing::error!("Unable to connect to {}: {}", socket_path, e);
+                    Err(Error::io("connecting to socket", e))
+                }
+            };
+        }
+
         // Discord just uses a simple round robin approach to finding a socket to use
         for seq in 0..10i32 {
             let socket_path = format!("\\\\?\\pipe\\discord-ipc-{}", seq);
@@ -156,7 +188,7 @@ pub(crate) fn start_io_task(app_id: i64) -> IoTask {
                     return Ok(stream);
                 }
                 Err(e) => {
-                    tracing::debug!("Unable to connect to {}: {}", socket_path, e);
+                    tracing::trace!("Unable to connect to {}: {}", socket_path, e);
                 }
             }
         }

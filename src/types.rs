@@ -126,6 +126,7 @@ pub(crate) enum Command {
     SearchLobbies(Vec<Lobby>),
     DeleteLobby,
     ConnectToLobby(Lobby),
+    DisconnectFromLobby,
     SendToLobby,
     Subscribe { evt: EventKind },
     ConnectToLobbyVoice,
@@ -226,6 +227,8 @@ pub enum CommandKind {
     DeleteLobby,
     /// RPC sent to connect to a lobby
     ConnectToLobby,
+    /// RPC sent to disconnect from a lobby
+    DisconnectFromLobby,
     /// RPC to send a message to a lobby
     SendToLobby,
     /// RPC sent to join the current user to the voice channel of the specified lobby

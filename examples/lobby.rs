@@ -32,7 +32,7 @@ async fn main() -> Result<(), anyhow::Error> {
                     lobby::LobbySearchComparison::Equal,
                     lobby::SearchValue::string(user.id.0.to_string()),
                 )
-                .limit(std::num::NonZeroU32::new(5)),
+                .distance(lobby::LobbySearchDistance::Global),
         )
         .await?;
 

@@ -32,6 +32,8 @@ pub enum Error {
     Discord(#[from] DiscordErr),
     #[error("a lobby activity join was not of the form '<lobby_id>:<lobby_secret>'")]
     NonCanonicalLobbyActivitySecret,
+    #[error("an asynchronous operation did not complete in the allotted time")]
+    TimedOut,
 }
 
 impl<T> From<crossbeam_channel::TrySendError<T>> for Error {
@@ -62,6 +64,13 @@ impl From<tokio::sync::oneshot::error::RecvError> for Error {
     #[inline]
     fn from(_se: tokio::sync::oneshot::error::RecvError) -> Self {
         Self::ChannelDisconnected
+    }
+}
+
+impl From<tokio::time::error::Elapsed> for Error {
+    #[inline]
+    fn from(_se: tokio::time::error::Elapsed) -> Self {
+        Self::TimedOut
     }
 }
 
