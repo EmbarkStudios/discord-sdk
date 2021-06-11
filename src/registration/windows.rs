@@ -17,7 +17,7 @@ pub fn register_app(app: super::Application) -> Result<(), Error> {
             LaunchCommand::Bin { path, args } => {
                 icon_path = path.clone().into();
 
-                super::create_command(path, args, "\"%1\"")?
+                super::create_command(path, args, "\"%1\"")
             }
             LaunchCommand::Url(url) => {
                 // Unfortunately it doesn't seem like we can just forward one
