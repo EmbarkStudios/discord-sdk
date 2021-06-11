@@ -128,8 +128,6 @@ pub struct Discord {
     io_task: tokio::task::JoinHandle<()>,
     /// The handle to the task dispatching messages to the DiscordHandler
     handler_task: tokio::task::JoinHandle<()>,
-    /// The application identifier. This is used for some RPCs sent to Discord.
-    app_id: AppId,
     /// The lobbies owned by the current user
     owned_lobbies: RwLock<Vec<Lobby>>,
     /// The lobbies returned by the latest search
@@ -173,7 +171,6 @@ impl Discord {
             searched_lobbies: parking_lot::RwLock::new(Vec::new()),
             io_task: io_task.handle,
             handler_task,
-            app_id,
             state,
         })
     }

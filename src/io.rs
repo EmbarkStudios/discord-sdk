@@ -87,7 +87,7 @@ pub(crate) fn serialize_message(
         Err(e) => {
             let buffer = cursor.into_inner();
             buffer.truncate(start);
-            Err(e)?;
+            return Err(e.into());
         }
     }
 
@@ -107,7 +107,7 @@ pub(crate) struct IoTask {
     /// The queue of messages to send to Discord
     pub(crate) stx: cc::Sender<Option<Vec<u8>>>,
     /// The queue of RPCs sent from Discord
-    pub(crate) rrx: cc::Receiver<IoMsg>,
+    pub(crate) rrx: tokio::sync::mpsc::Receiver<IoMsg>,
     /// The handle to the task
     pub(crate) handle: tokio::task::JoinHandle<()>,
 }
@@ -167,7 +167,7 @@ pub(crate) fn start_io_task(app_id: i64) -> IoTask {
     // Send queue
     let (stx, srx) = cc::bounded::<Option<Vec<u8>>>(100);
     // Receive queue
-    let (rtx, rrx) = cc::bounded(100);
+    let (rtx, rrx) = tokio::sync::mpsc::channel(100);
 
     // The io thread also sends messages
     let io_stx = stx.clone();
@@ -178,7 +178,7 @@ pub(crate) fn start_io_task(app_id: i64) -> IoTask {
             app_id: i64,
             stx: &cc::Sender<Option<Vec<u8>>>,
             srx: &cc::Receiver<Option<Vec<u8>>>,
-            rtx: &cc::Sender<IoMsg>,
+            rtx: &tokio::sync::mpsc::Sender<IoMsg>,
         ) -> Result<(), Error> {
             // We always send the handshake immediately on establishing a connection,
             // Discord should then respond with a `Ready` RPC
@@ -214,93 +214,115 @@ pub(crate) fn start_io_task(app_id: i64) -> IoTask {
             let mut valid_header: Option<(OpCode, u32)> = None;
             let mut top_message: Option<(Vec<u8>, usize)> = None;
 
+            let mut interval = tokio::time::interval(std::time::Duration::from_millis(10));
+
             loop {
+                // We use crossbeam channels for sending messages to this I/O
+                // task as they provide a little more functionality compared to
+                // tokio mpsc channels, but that means we need some way to sleep
+                // this task, as otherwise the stream.ready() is basically always
+                // going to immediately return and report it is writable which
+                // causes this task to peg a core and actually cause tokio to
+                // fail to wake other tasks, however, we do try and read all data
+                // that is pending on the pipe each tick, so it's essentially
+                // just the write that is limited to a maximum of 1 per tick
+                // which is fine since the tick is quite small relative to the
+                // amount of messages we actually send to Discord
+                interval.tick().await;
+
                 let ready = stream
                     .ready(tokio::io::Interest::READABLE | tokio::io::Interest::WRITABLE)
                     .await
                     .map_err(|e| Error::io("polling socket readiness", e))?;
 
                 if ready.is_readable() {
-                    let mut buf = match &valid_header {
-                        Some((_, len)) => &mut data_buf[data_cursor..*len as usize],
-                        None => &mut header_buf.buf[header_buf.cursor..],
-                    };
+                    'read: loop {
+                        let mut buf = match &valid_header {
+                            Some((_, len)) => &mut data_buf[data_cursor..*len as usize],
+                            None => &mut header_buf.buf[header_buf.cursor..],
+                        };
 
-                    match stream.try_read(&mut buf) {
-                        Ok(n) => {
-                            if n == 0 {
-                                return Err(Error::NoConnection);
-                            }
+                        match stream.try_read(&mut buf) {
+                            Ok(n) => {
+                                if n == 0 {
+                                    return Err(Error::NoConnection);
+                                }
 
-                            match valid_header {
-                                Some((op, len)) => {
-                                    data_cursor += n;
-                                    let len = len as usize;
-                                    if data_cursor == len {
-                                        match op {
-                                            OpCode::Close => {
-                                                let close: types::CloseFrame<'_> =
-                                                    serde_json::from_slice(&data_buf)?;
+                                match valid_header {
+                                    Some((op, len)) => {
+                                        data_cursor += n;
+                                        let len = len as usize;
+                                        if data_cursor == len {
+                                            match op {
+                                                OpCode::Close => {
+                                                    let close: types::CloseFrame<'_> =
+                                                        serde_json::from_slice(&data_buf)?;
 
-                                                tracing::debug!("Received close request from Discord: {:?} - {:?}", close.code, close.message);
-                                                return Err(Error::Close(
-                                                    close
-                                                        .message
-                                                        .unwrap_or("unknown reason")
-                                                        .to_owned(),
-                                                ));
-                                            }
-                                            OpCode::Frame => {
-                                                if rtx.send(IoMsg::Frame(data_buf.clone())).is_err()
-                                                {
-                                                    tracing::error!(
-                                                        "Dropped RPC as queue is too full"
+                                                    tracing::debug!("Received close request from Discord: {:?} - {:?}", close.code, close.message);
+                                                    return Err(Error::Close(
+                                                        close
+                                                            .message
+                                                            .unwrap_or("unknown reason")
+                                                            .to_owned(),
+                                                    ));
+                                                }
+                                                OpCode::Frame => {
+                                                    if rtx
+                                                        .send(IoMsg::Frame(data_buf.clone()))
+                                                        .await
+                                                        .is_err()
+                                                    {
+                                                        tracing::error!(
+                                                            "Dropped RPC as queue is too full"
+                                                        );
+                                                    }
+
+                                                    tracing::debug!("sent frame");
+                                                }
+                                                OpCode::Ping => {
+                                                    let pong_response =
+                                                        make_message(OpCode::Pong, &data_buf);
+                                                    tracing::debug!(
+                                                        "Responding to PING request from Discord"
+                                                    );
+                                                    stx.send(Some(pong_response))?;
+                                                }
+                                                OpCode::Pong => {
+                                                    tracing::debug!(
+                                                        "Received PONG response from Discord"
                                                     );
                                                 }
+                                                OpCode::Handshake => {
+                                                    tracing::error!("Received a HANDSHAKE request from Discord, the stream is likely corrupt");
+                                                    return Err(Error::CorruptConnection);
+                                                }
                                             }
-                                            OpCode::Ping => {
-                                                let pong_response =
-                                                    make_message(OpCode::Pong, &data_buf);
-                                                tracing::debug!(
-                                                    "Responding to PING request from Discord"
-                                                );
-                                                stx.send(Some(pong_response))?;
-                                            }
-                                            OpCode::Pong => {
-                                                tracing::debug!(
-                                                    "Received PONG response from Discord"
-                                                );
-                                            }
-                                            OpCode::Handshake => {
-                                                tracing::error!("Received a HANDSHAKE request from Discord, the stream is likely corrupt");
-                                                return Err(Error::CorruptConnection);
-                                            }
+
+                                            valid_header = None;
+                                            header_buf.cursor = 0;
+                                            data_buf.clear();
+                                            data_cursor = 0;
                                         }
-
-                                        valid_header = None;
-                                        header_buf.cursor = 0;
-                                        data_buf.clear();
-                                        data_cursor = 0;
                                     }
-                                }
-                                None => {
-                                    header_buf.cursor += n;
-                                    if header_buf.cursor == header_buf.buf.len() {
-                                        let header = parse_frame_header(header_buf.buf)?;
+                                    None => {
+                                        header_buf.cursor += n;
+                                        if header_buf.cursor == header_buf.buf.len() {
+                                            let header = parse_frame_header(header_buf.buf)?;
 
-                                        // Ensure the data buffer has enough space
-                                        data_buf.resize(header.1 as usize, 0);
+                                            // Ensure the data buffer has enough space
+                                            data_buf.resize(header.1 as usize, 0);
 
-                                        valid_header = Some(header);
+                                            valid_header = Some(header);
+                                        }
                                     }
                                 }
                             }
-                        }
-                        Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                            continue;
-                        }
-                        Err(e) => {
-                            return Err(Error::io("reading socket", e));
+                            Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                                break 'read;
+                            }
+                            Err(e) => {
+                                return Err(Error::io("reading socket", e));
+                            }
                         }
                     }
                 }

@@ -24,7 +24,7 @@ pub(crate) fn handler_task(
     handler: Box<dyn crate::DiscordHandler>,
     subscriptions: crate::Subscriptions,
     stx: cc::Sender<Option<Vec<u8>>>,
-    mut rrx: cc::Receiver<crate::io::IoMsg>,
+    mut rrx: tokio::sync::mpsc::Receiver<crate::io::IoMsg>,
     state: crate::State,
 ) -> tokio::task::JoinHandle<()> {
     tokio::task::spawn(async move {
@@ -59,107 +59,96 @@ pub(crate) fn handler_task(
             }
         });
 
-        // There is some super weird bug/issue with the tokio mpsc channel that doesn't wake
-        // the rrx receiver when a message has been sent from the io task, so we instead use
-        // a crossbeam channel, but we don't want to block, and we don't want to busy loop,
-        // so use a small interval to let us sleep the task when waiting on the next message
-        let mut interval = tokio::time::interval(std::time::Duration::from_millis(10));
+        macro_rules! user_send {
+            ($msg:expr) => {
+                if user_tx.send($msg).is_err() {
+                    tracing::warn!("user handler task has been dropped");
+                }
+            };
+        }
 
-        'outer: loop {
-            interval.tick().await;
+        while let Some(io_msg) = rrx.recv().await {
+            let msg = match io_msg {
+                crate::io::IoMsg::Disconnected { reason } => {
+                    user_send!(User::Event(Event::Disconnected { reason }));
+                    continue;
+                }
+                crate::io::IoMsg::Frame(frame) => process_frame(frame),
+            };
 
-            loop {
-                match rrx.try_recv() {
-                    Ok(io_msg) => {
-                        let msg = match io_msg {
-                            crate::io::IoMsg::Disconnected { reason } => {
-                                user_tx.send(User::Event(Event::Disconnected { reason }));
-                                continue;
+            match msg {
+                Msg::Event(event) => {
+                    if let Event::Ready { .. } = &event {
+                        // Spawn a task that subscribes to all of the events
+                        // that the caller was interested in when we've finished
+                        // the handshake with Discord
+                        subscribe_task(subscriptions, stx.clone());
+                    }
+
+                    user_send!(User::Event(event));
+                }
+                Msg::Command { command, kind } => {
+                    if kind == CommandKind::Subscribe {
+                        tracing::debug!("subscription succeeded: {:#?}", command.inner);
+                        continue;
+                    }
+
+                    match pop_nonce(command.nonce) {
+                        Some(ni) => {
+                            if ni
+                                .tx
+                                .send(if ni.cmd == kind {
+                                    Ok(command.inner)
+                                } else {
+                                    Err(crate::Error::Discord(
+                                        crate::DiscordErr::MismatchedResponse {
+                                            expected: ni.cmd,
+                                            actual: kind,
+                                            nonce: command.nonce,
+                                        },
+                                    ))
+                                })
+                                .is_err()
+                            {
+                                tracing::warn!(
+                                    cmd = ?kind,
+                                    nonce = command.nonce,
+                                    "command response dropped as receiver was closed",
+                                );
                             }
-                            crate::io::IoMsg::Frame(frame) => process_frame(frame),
-                        };
-
-                        match msg {
-                            Msg::Event(event) => {
-                                match &event {
-                                    Event::Ready { .. } => {
-                                        // Spawn a task that subscribes to all of the events
-                                        // that the caller was interested in
-                                        subscribe_task(subscriptions, stx.clone());
-                                    }
-                                    _ => {}
-                                }
-
-                                if user_tx.send(User::Event(event)).is_err() {
-                                    tracing::warn!("user handler task has been dropped");
-                                }
-                            }
-                            Msg::Command { command, kind } => {
-                                if kind == CommandKind::Subscribe {
-                                    tracing::debug!("subscription succeeded: {:#?}", command.inner);
-                                    continue;
-                                }
-
-                                match pop_nonce(command.nonce) {
-                                    Some(ni) => {
-                                        if ni
-                                            .tx
-                                            .send(if ni.cmd == kind {
-                                                Ok(command.inner)
-                                            } else {
-                                                Err(crate::Error::Discord(
-                                                    crate::DiscordErr::MismatchedResponse {
-                                                        expected: ni.cmd,
-                                                        actual: kind,
-                                                        nonce: command.nonce,
-                                                    },
-                                                ))
-                                            })
-                                            .is_err()
-                                        {
-                                            tracing::warn!(
-                                                cmd = ?kind,
-                                                nonce = command.nonce,
-                                                "command response dropped as receiver was closed",
-                                            );
-                                        }
-                                    }
-                                    None => {
-                                        tracing::warn!(
-                                            cmd = ?command.inner,
-                                            nonce = command.nonce,
-                                            "received a command response with an unknown nonce",
-                                        );
-                                    }
-                                }
-                            }
-                            Msg::Error { nonce, error, .. } => match nonce {
-                                Some(nonce) => match pop_nonce(nonce) {
-                                    Some(ni) => {
-                                        if let Err(error) = ni.tx.send(Err(error)) {
-                                            tracing::warn!(
-                                                error = ?error.unwrap_err(),
-                                                nonce = nonce,
-                                                "error result dropped as receiver was closed",
-                                            );
-                                        }
-                                    }
-                                    None => {
-                                        user_tx.send(User::Error(error));
-                                    }
-                                },
-                                None => {
-                                    user_tx.send(User::Error(error));
-                                }
-                            },
+                        }
+                        None => {
+                            tracing::warn!(
+                                cmd = ?command.inner,
+                                nonce = command.nonce,
+                                "received a command response with an unknown nonce",
+                            );
                         }
                     }
-                    Err(cc::TryRecvError::Disconnected) => break 'outer,
-                    Err(cc::TryRecvError::Empty) => continue 'outer,
                 }
+                Msg::Error { nonce, error, .. } => match nonce {
+                    Some(nonce) => match pop_nonce(nonce) {
+                        Some(ni) => {
+                            if let Err(error) = ni.tx.send(Err(error)) {
+                                tracing::warn!(
+                                    error = ?error.unwrap_err(),
+                                    nonce = nonce,
+                                    "error result dropped as receiver was closed",
+                                );
+                            }
+                        }
+                        None => {
+                            user_send!(User::Error(error));
+                        }
+                    },
+                    None => {
+                        user_send!(User::Error(error));
+                    }
+                },
             }
         }
 
+        drop(user_tx);
         let _ = user_task.await;
     })
 }
@@ -317,6 +306,8 @@ fn subscribe_task(subs: crate::Subscriptions, stx: cc::Sender<Option<Vec<u8>>>) 
             push(*kind);
         });
 
-        stx.send(Some(buffer));
+        if stx.send(Some(buffer)).is_err() {
+            tracing::warn!("unable to send subscription RPCs to I/O task");
+        }
     });
 }

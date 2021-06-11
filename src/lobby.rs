@@ -315,8 +315,7 @@ impl SearchValue {
 impl From<SearchValue> for String {
     fn from(sv: SearchValue) -> Self {
         match sv {
-            SearchValue::String(s) => s,
-            SearchValue::Number(s) => s,
+            SearchValue::String(s) | SearchValue::Number(s) => s,
         }
     }
 }
@@ -436,7 +435,7 @@ impl Serialize for LobbyMessage {
 
                 serializer.serialize_str(&data)
             }
-            Self::Text(text) => serializer.serialize_str(&text),
+            Self::Text(text) => serializer.serialize_str(text),
         }
     }
 }

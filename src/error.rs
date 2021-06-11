@@ -51,6 +51,13 @@ impl<T> From<crossbeam_channel::SendError<T>> for Error {
     }
 }
 
+impl<T> From<tokio::sync::mpsc::error::SendError<T>> for Error {
+    #[inline]
+    fn from(_se: tokio::sync::mpsc::error::SendError<T>) -> Self {
+        Self::ChannelDisconnected
+    }
+}
+
 impl From<tokio::sync::oneshot::error::RecvError> for Error {
     #[inline]
     fn from(_se: tokio::sync::oneshot::error::RecvError) -> Self {

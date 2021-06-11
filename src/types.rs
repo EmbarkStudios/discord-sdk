@@ -98,7 +98,7 @@ pub enum Event {
 pub(crate) enum Command {
     CreateLobby(Lobby),
     UpdateLobby,
-    SetActivity(Option<crate::activity::SetActivity>),
+    SetActivity(Box<Option<crate::activity::SetActivity>>),
     SearchLobbies(Vec<Lobby>),
     DeleteLobby,
     ConnectToLobby(Lobby),
