@@ -127,8 +127,10 @@ pub struct Discord {
     io_task: tokio::task::JoinHandle<()>,
     /// The handle to the task dispatching messages to the DiscordHandler
     handler_task: tokio::task::JoinHandle<()>,
-    /// The lobbies owned by the current user
-    owned_lobbies: RwLock<Vec<lobby::Lobby>>,
+    /// The lobby owned by the current user. This doesn't seem to be stated in
+    /// the Discord documentation, but it appears from the errors that you can
+    /// only own one lobby at a time, but can be a member in up to 5.
+    owned_lobby: RwLock<Option<lobby::Lobby>>,
     /// The lobbies returned by the latest search
     searched_lobbies: RwLock<Vec<lobby::Lobby>>,
     state: State,
@@ -166,7 +168,7 @@ impl Discord {
         Ok(Self {
             nonce: std::sync::atomic::AtomicUsize::new(1),
             send_queue: io_task.stx,
-            owned_lobbies: parking_lot::RwLock::new(Vec::new()),
+            owned_lobby: parking_lot::RwLock::new(None),
             searched_lobbies: parking_lot::RwLock::new(Vec::new()),
             io_task: io_task.handle,
             handler_task,

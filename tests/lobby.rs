@@ -27,7 +27,7 @@ async fn test_local_lobbies() {
         }
     });
 
-    let one_user = one.user;
+    let _one_user = one.user;
     let two_user = two.user;
 
     let one = one.discord;
@@ -96,26 +96,27 @@ async fn test_local_lobbies() {
         .owner(Some(two_user.id));
 
     tracing::info!("1 => changing lobby ownership");
-    let _updated_lobby = one
-        .update_lobby(lobby_update)
-        .await
-        .expect("failed to set owner");
+    assert!(one.update_lobby(lobby_update).await.is_ok());
 
     let lobby_id = lobby.id;
 
     let one_msg = tokio::task::spawn(async move {
-        one.send_lobby_message(lobby_id, lobby::LobbyMessage::text("I'm leaving"))
-            .await;
+        assert!(one
+            .send_lobby_message(lobby_id, lobby::LobbyMessage::text("I'm leaving"))
+            .await
+            .is_ok());
 
         one
     });
 
     let two_msg = tokio::task::spawn(async move {
-        two.send_lobby_message(
-            lobby_id,
-            lobby::LobbyMessage::binary(b"that makes me very sad".to_vec()),
-        )
-        .await;
+        assert!(two
+            .send_lobby_message(
+                lobby_id,
+                lobby::LobbyMessage::binary(b"that makes me very sad".to_vec()),
+            )
+            .await
+            .is_ok());
 
         two
     });

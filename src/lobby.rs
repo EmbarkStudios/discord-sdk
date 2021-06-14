@@ -290,7 +290,7 @@ impl<'md> From<&'md str> for SearchKey<'md> {
     }
 }
 
-use std::fmt;
+use std::{fmt, ops::DerefMut};
 
 impl<'md> fmt::Display for SearchKey<'md> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -517,7 +517,7 @@ impl crate::Discord {
         let rx = self.send_rpc(CommandKind::CreateLobby, args.inner)?;
 
         handle_response!(rx, Command::CreateLobby(lobby) => {
-            self.owned_lobbies.write().push(lobby.clone());
+            *self.owned_lobby.write() = Some(lobby.clone());
 
             Ok(lobby)
         })
@@ -526,7 +526,7 @@ impl crate::Discord {
     /// Retrieves a builder for the specified lobby to update it. This will fail
     /// if the current [`User`] is not the owner of the lobby.
     pub fn get_lobby_update(&self, lobby_id: LobbyId) -> Result<UpdateLobbyBuilder, Error> {
-        self.owned_lobbies
+        self.owned_lobby
             .read()
             .iter()
             .find_map(|lobby| {
@@ -572,24 +572,21 @@ impl crate::Discord {
             // If ownership was transferred we remove it from the owned list, but
             // _don't_ add it to the searched lobbies since that should be intentional
             // by the user
-            let mut ol = self.owned_lobbies.write();
+            let mut ol = self.owned_lobby.write();
 
-            match ol.iter_mut().position(|lobby| lobby.id == lobby_id) {
-                Some(lobby_ind) => {
-                    if update.owner_id != Some(ol[lobby_ind].owner_id) {
-                        let mut unowned_lobby = ol.remove(lobby_ind);
+            match ol.deref_mut() {
+                Some(lobby) if lobby.id == lobby_id => {
+                    // If the owner id is changed we remove it before updating it
+                    if update.owner_id != Some(lobby.owner_id) {
+                        let mut unowned_lobby = ol.take().unwrap();
                         update.modify(&mut unowned_lobby);
-
                         Ok(unowned_lobby)
                     } else {
-                        let owned_lobby = &mut ol[lobby_ind];
-                        update.modify(owned_lobby);
-                        Ok(owned_lobby.clone())
+                        update.modify(lobby);
+                        Ok(lobby.clone())
                     }
                 }
-                None => {
-                    Err(Error::Discord(DiscordErr::UnownedLobby(lobby_id)))
-                }
+                _ => Err(Error::Discord(DiscordErr::UnownedLobby(lobby_id)))
             }
         })
     }
