@@ -107,6 +107,8 @@ pub enum DiscordErr {
 pub enum DiscordApiErr {
     #[error("already connected to lobby")]
     AlreadyConnectedToLobby,
+    #[error("already connecting to lobby")]
+    AlreadyConnectingToLobby,
     #[error("Discord encountered an unknown error processing the command")]
     Unknown,
     #[error("Discord sent an error response with no actual data")]
@@ -148,9 +150,20 @@ impl<'stack> From<Option<crate::types::ErrorPayloadStack<'stack>>> for DiscordAp
                             reason: message
                                 .map_or_else(|| "unknown problem".to_owned(), |s| s.into_owned()),
                         },
-                        4002 => {
-                            to_known("Already connected to lobby.", Self::AlreadyConnectedToLobby)
-                        }
+                        4002 => match message.as_deref() {
+                            Some("Already connected to lobby.") => to_known(
+                                "Already connected to lobby.",
+                                Self::AlreadyConnectedToLobby,
+                            ),
+                            Some("Already connecting to lobby.") => to_known(
+                                "Already connecting to lobby.",
+                                Self::AlreadyConnectingToLobby,
+                            ),
+                            _ => Self::Generic {
+                                code,
+                                message: message.map(|s| s.into_owned()),
+                            },
+                        },
                         _ => Self::Generic {
                             code,
                             message: message.map(|s| s.into_owned()),

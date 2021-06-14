@@ -1,5 +1,5 @@
 use crate::{
-    lobby::{Lobby, LobbyId},
+    lobby::{self, Lobby, LobbyId},
     Error,
 };
 use serde::{Deserialize, Serialize};
@@ -72,6 +72,14 @@ pub enum Event {
         #[serde(deserialize_with = "de_user")]
         user: User,
     },
+    /// Fires when we've done something naughty and Discord is telling us to stop.
+    ///
+    /// [API docs](https://discord.com/developers/docs/game-sdk/discord#error-handling)
+    Error(ErrorPayload),
+    /// Fired when the connection has been interrupted between us and Discord
+    #[serde(skip)]
+    Disconnected { reason: String },
+
     /// Sent by Discord when the local user has requested to join a game, and
     /// the remote user has accepted their request.
     ///
@@ -89,13 +97,7 @@ pub enum Event {
         #[serde(deserialize_with = "de_user")]
         user: User,
     },
-    /// Fires when we've done something naughty and Discord is telling us to stop.
-    ///
-    /// [API docs](https://discord.com/developers/docs/game-sdk/discord#error-handling)
-    Error(ErrorPayload),
-    /// Fired when the connection has been interrupted between us and Discord
-    #[serde(skip)]
-    Disconnected { reason: String },
+
     /// Event fired when a user starts speaking in a lobby voice channel.
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onspeaking)
@@ -114,23 +116,56 @@ pub enum Event {
         /// The user in the lobby that started speaking
         user_id: UserId,
     },
+    /// Event fired when a user connects to a lobby.
+    ///
+    /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onmemberconnect)
+    LobbyMemberConnect {
+        lobby_id: LobbyId,
+        member: lobby::LobbyMember,
+    },
+    /// Event fired when a user disconnects from a lobby.
+    ///
+    /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onmemberdisconnect)
+    LobbyMemberDisconnect {
+        lobby_id: LobbyId,
+        member: lobby::LobbyMember,
+    },
+    /// Event fired when a lobby is deleted.
+    ///
+    /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onlobbydelete)
+    LobbyDelete { id: LobbyId },
+    /// Event fired when a lobby is updated. Note that this is only the metadata
+    /// on the lobby itself, not the `members`.
+    ///
+    /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onlobbyupdate)
+    LobbyUpdate(Lobby),
+    /// Event fired when the metadata for a lobby member is changed.
+    ///
+    /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onmemberupdate)
+    LobbyMemberUpdate {
+        lobby_id: LobbyId,
+        member: lobby::LobbyMember,
+    },
 }
 
 /// The response to an RPC sent by us.
 #[derive(Deserialize, Debug)]
 #[serde(tag = "cmd", content = "data", rename_all = "SCREAMING_SNAKE_CASE")]
 pub(crate) enum Command {
+    Subscribe { evt: EventKind },
+
     CreateLobby(Lobby),
     UpdateLobby,
-    SetActivity(Box<Option<crate::activity::SetActivity>>),
     SearchLobbies(Vec<Lobby>),
     DeleteLobby,
     ConnectToLobby(Lobby),
     DisconnectFromLobby,
     SendToLobby,
-    Subscribe { evt: EventKind },
     ConnectToLobbyVoice,
     DisconnectFromLobbyVoice,
+    UpdateLobbyMember,
+
+    SetActivity(Box<Option<crate::activity::SetActivity>>),
 }
 
 /// An RPC sent from Discord as JSON, in response to an RPC sent by us.
@@ -176,18 +211,21 @@ pub(crate) struct EventFrame {
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub(crate) enum EventKind {
     Ready,
+    Error,
+
     CurrentUserUpdate,
+
     ActivityJoinRequest,
     ActivityJoin,
     ActivitySpectate,
     ActivityInvite,
+
     LobbyUpdate,
     LobbyDelete,
     LobbyMemberConnect,
     LobbyMemberUpdate,
     LobbyMemberDisconnect,
     LobbyMessage,
-    Error,
     SpeakingStart,
     SpeakingStop,
 }
@@ -207,16 +245,19 @@ pub enum JoinReply {
 pub enum CommandKind {
     /// Dispatch the event specified in "evt".
     Dispatch,
-    /// Updates the user's rich presence
-    SetActivity,
+
     /// Subscribes to the event specified in "evt"
     Subscribe,
     /// Unsubscribes from the event specified in "evt"
     Unsubscribe,
+
+    /// Updates the user's rich presence
+    SetActivity,
     /// RPC sent when the local user has [`JoinReply::Accept`]ed a join request
     SendActivityJoinInvite,
     /// RPC sent when the local user has [`JoinReply::Reject`]ed a join request
     CloseActivityRequest,
+
     /// RPC sent to create a lobby
     CreateLobby,
     /// RPC sent to modify the mutable properties of a lobby
@@ -235,6 +276,8 @@ pub enum CommandKind {
     ConnectToLobbyVoice,
     /// RPC sent to disconnect the current user from the voice channel of the specified lobby
     DisconnectFromLobbyVoice,
+    /// RPC sent to update a lobby member's metadata
+    UpdateLobbyMember,
 }
 
 /// A Discord user
