@@ -434,9 +434,20 @@ impl<'s> std::convert::TryFrom<&'s str> for ConnectLobby {
 }
 
 /// A message sent by a user to a lobby
+#[derive(Debug, PartialEq)]
 pub enum LobbyMessage {
     Binary(Vec<u8>),
     Text(String),
+}
+
+impl LobbyMessage {
+    pub fn text(text: impl Into<String>) -> Self {
+        Self::Text(text.into())
+    }
+
+    pub fn binary(bin: impl Into<Vec<u8>>) -> Self {
+        Self::Binary(bin.into())
+    }
 }
 
 impl Serialize for LobbyMessage {

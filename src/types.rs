@@ -120,14 +120,18 @@ pub enum Event {
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onmemberconnect)
     LobbyMemberConnect {
+        /// The lobby the user connected to
         lobby_id: LobbyId,
+        /// The details of the member that connected to the lobby
         member: lobby::LobbyMember,
     },
     /// Event fired when a user disconnects from a lobby.
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onmemberdisconnect)
     LobbyMemberDisconnect {
+        /// The lobby the user disconnected from
         lobby_id: LobbyId,
+        /// The details of the member that disconnected from the lobby
         member: lobby::LobbyMember,
     },
     /// Event fired when a lobby is deleted.
@@ -143,8 +147,21 @@ pub enum Event {
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onmemberupdate)
     LobbyMemberUpdate {
+        /// The lobby that contains the member that was updated
         lobby_id: LobbyId,
+        /// The updated member
         member: lobby::LobbyMember,
+    },
+    /// Event fired when a message is sent to the lobby.
+    ///
+    /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onlobbymessage)
+    LobbyMessage {
+        /// The lobby the messsage was sent to
+        lobby_id: LobbyId,
+        /// The lobby member that sent the message
+        sender_id: UserId,
+        /// The message itself
+        data: lobby::LobbyMessage,
     },
 }
 
