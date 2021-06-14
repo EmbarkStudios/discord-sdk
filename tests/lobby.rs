@@ -27,9 +27,14 @@ async fn test_local_lobbies() {
         }
     });
 
+    let one_user = one.user;
+    let two_user = two.user;
+
+    let one = one.discord;
+    let two = two.discord;
+
     tracing::info!("1 => creating lobby");
     let lobby = one
-        .discord
         .create_lobby(
             lobby::CreateLobbyBuilder::new()
                 .capacity(std::num::NonZeroU32::new(2))
@@ -67,7 +72,6 @@ async fn test_local_lobbies() {
 
     tracing::info!("2 => connecting to lobby");
     let connected_lobby = two
-        .discord
         .connect_lobby(lobby::ConnectLobby {
             id: lobby.id,
             secret: lobby.secret.clone(),
@@ -82,27 +86,46 @@ async fn test_local_lobbies() {
     md.insert("two".to_owned(), "2".to_owned());
 
     assert!(two
-        .discord
-        .update_lobby_member(lobby.id, two.user.id, md)
+        .update_lobby_member(lobby.id, two_user.id, md)
         .await
         .is_ok());
 
     let lobby_update = one
-        .discord
         .get_lobby_update(lobby.id)
         .expect("failed to get lobby update")
-        .owner(Some(two.user.id));
+        .owner(Some(two_user.id));
 
     tracing::info!("1 => changing lobby ownership");
-    let updated_lobby = one
-        .discord
+    let _updated_lobby = one
         .update_lobby(lobby_update)
         .await
         .expect("failed to set owner");
 
+    let lobby_id = lobby.id;
+
+    let one_msg = tokio::task::spawn(async move {
+        one.send_lobby_message(lobby_id, lobby::LobbyMessage::text("I'm leaving"))
+            .await;
+
+        one
+    });
+
+    let two_msg = tokio::task::spawn(async move {
+        two.send_lobby_message(
+            lobby_id,
+            lobby::LobbyMessage::binary(b"that makes me very sad".to_vec()),
+        )
+        .await;
+
+        two
+    });
+
+    let (one, two) = tokio::join!(one_msg, two_msg);
+    let one = one.unwrap();
+    let two = two.unwrap();
+
     tracing::info!("1 => disconnecting from lobby");
-    one.discord
-        .disconnect_lobby(lobby.id)
+    one.disconnect_lobby(lobby.id)
         .await
         .expect("disconnected from lobby");
 
@@ -111,26 +134,21 @@ async fn test_local_lobbies() {
     tokio::time::sleep(std::time::Duration::from_secs(5)).await;
 
     tracing::info!("1 => connecting to lobby");
-    one.discord
-        .connect_lobby(lobby::ConnectLobby {
-            id: lobby.id,
-            secret: lobby.secret.clone(),
-        })
-        .await
-        .expect("connected to lobby");
+    one.connect_lobby(lobby::ConnectLobby {
+        id: lobby.id,
+        secret: lobby.secret.clone(),
+    })
+    .await
+    .expect("connected to lobby");
 
     tracing::info!("1 => disconnecting from lobby");
-    one.discord
-        .disconnect_lobby(lobby.id)
+    one.disconnect_lobby(lobby.id)
         .await
         .expect("disconnected from lobby");
 
     tracing::info!("2 => deleting lobby");
-    two.discord
-        .delete_lobby(lobby.id)
-        .await
-        .expect("deleted lobby");
+    two.delete_lobby(lobby.id).await.expect("deleted lobby");
 
-    one.discord.disconnect().await;
-    two.discord.disconnect().await;
+    one.disconnect().await;
+    two.disconnect().await;
 }
