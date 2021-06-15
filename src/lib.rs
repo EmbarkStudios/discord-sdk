@@ -85,6 +85,7 @@ pub mod error;
 mod handler;
 mod io;
 pub mod lobby;
+pub mod overlay;
 pub mod registration;
 mod types;
 pub mod user;
@@ -114,8 +115,9 @@ bitflags::bitflags! {
         const ACTIVITY = 0x1;
         const LOBBY = 0x2;
         const USER = 0x4;
+        const OVERLAY = 0x8;
 
-        const ALL = Self::ACTIVITY.bits | Self::LOBBY.bits | Self::USER.bits;
+        const ALL = Self::ACTIVITY.bits | Self::LOBBY.bits | Self::USER.bits | Self::OVERLAY.bits;
     }
 }
 

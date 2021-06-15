@@ -321,6 +321,28 @@ fn subscribe_task(subs: crate::Subscriptions, stx: cc::Sender<Option<Vec<u8>>>) 
             push(*kind);
         });
 
+        // Unlike EVERY other event, subscribing to OVERLAY_UPDATE requires
+        // an argument... :facepalm:
+        if subs.contains(crate::Subscriptions::OVERLAY) {
+            #[cfg(target_pointer_width = "32")]
+            let nunce = 0x10000000 | nonce;
+            #[cfg(target_pointer_width = "64")]
+            let nunce = 0x1000000000000000 | nonce;
+
+            let _ = crate::io::serialize_message(
+                crate::io::OpCode::Frame,
+                &Rpc {
+                    cmd: crate::types::CommandKind::Subscribe,
+                    evt: Some(EventKind::OverlayUpdate),
+                    nonce: nunce.to_string(),
+                    args: Some(crate::overlay::OverlayPidArgs::new()),
+                },
+                &mut buffer,
+            );
+
+            //nonce += 1;
+        }
+
         if stx.send(Some(buffer)).is_err() {
             tracing::warn!("unable to send subscription RPCs to I/O task");
         }

@@ -173,13 +173,29 @@ pub enum Event {
         /// The message itself
         data: lobby::LobbyMessage,
     },
+
+    /// Event fired when the overlay state changes.
+    ///
+    /// [API docs](https://discord.com/developers/docs/game-sdk/overlay#ontoggle)
+    OverlayUpdate {
+        /// Whether the user has the overlay enabled or disabled. If the overlay
+        /// is disabled, all the functionality of the SDK will still work. The
+        /// calls will instead focus the Discord client and show the modal there
+        /// instead of in application.
+        enabled: bool,
+        /// Whether the overlay is visible or not.
+        #[serde(rename = "locked")]
+        visible: crate::overlay::Visibility,
+    },
 }
 
 /// The response to an RPC sent by us.
 #[derive(Deserialize, Debug)]
 #[serde(tag = "cmd", content = "data", rename_all = "SCREAMING_SNAKE_CASE")]
 pub(crate) enum Command {
-    Subscribe { evt: EventKind },
+    Subscribe {
+        evt: EventKind,
+    },
 
     CreateLobby(Lobby),
     UpdateLobby,
@@ -195,6 +211,12 @@ pub(crate) enum Command {
     SetActivity(Box<Option<crate::activity::SetActivity>>),
     ActivityInviteUser,
     AcceptActivityInvite,
+
+    #[serde(rename = "SET_OVERLAY_LOCKED")]
+    SetOverlayVisibility,
+    OpenOverlayActivityInvite,
+    OpenOverlayGuildInvite,
+    OpenOverlayVoiceSettings,
 }
 
 /// An RPC sent from Discord as JSON, in response to an RPC sent by us.
@@ -257,6 +279,8 @@ pub(crate) enum EventKind {
     LobbyMessage,
     SpeakingStart,
     SpeakingStop,
+
+    OverlayUpdate,
 }
 
 /// The different RPC command types
@@ -302,6 +326,16 @@ pub enum CommandKind {
     DisconnectFromLobbyVoice,
     /// RPC sent to update a lobby member's metadata
     UpdateLobbyMember,
+
+    /// RPC sent to toggle the overlay either opened or closed
+    #[serde(rename = "SET_OVERLAY_LOCKED")]
+    SetOverlayVisibility,
+    /// RPC sent to open the activity invite overlay modal
+    OpenOverlayActivityInvite,
+    /// RPC sent to open the guild invite overlay modal
+    OpenOverlayGuildInvite,
+    /// RPC sent to open the voice settings for the application
+    OpenOverlayVoiceSettings,
 }
 
 /// Discord uses [snowflakes](https://discord.com/developers/docs/reference#snowflakes)
