@@ -1,5 +1,6 @@
 use crate::{
-    types::{Command, CommandKind, Snowflake, UserId},
+    types::{Command, CommandKind, Snowflake},
+    user::UserId,
     DiscordErr, Error,
 };
 use serde::{Deserialize, Serialize};
@@ -78,8 +79,8 @@ pub struct Lobby {
 #[derive(Deserialize, Debug, Clone)]
 pub struct LobbyMember {
     pub metadata: Metadata,
-    #[serde(deserialize_with = "crate::types::de_user")]
-    pub user: crate::User,
+    #[serde(deserialize_with = "crate::user::de_user")]
+    pub user: crate::user::User,
 }
 
 /// Argument used to create or modify a [`Lobby`]
@@ -290,7 +291,7 @@ impl<'md> From<&'md str> for SearchKey<'md> {
     }
 }
 
-use std::{fmt, ops::DerefMut};
+use std::fmt;
 
 impl<'md> fmt::Display for SearchKey<'md> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -574,7 +575,7 @@ impl crate::Discord {
             // by the user
             let mut ol = self.owned_lobby.write();
 
-            match ol.deref_mut() {
+            match &mut *ol {
                 Some(lobby) if lobby.id == lobby_id => {
                     // If the owner id is changed we remove it before updating it
                     if update.owner_id != Some(lobby.owner_id) {

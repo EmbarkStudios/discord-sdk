@@ -2,7 +2,7 @@ pub use discord_sdk as ds;
 
 pub const APP_ID: ds::AppId = 310270644849737729;
 
-struct Printer(tokio::sync::mpsc::Sender<Option<ds::User>>);
+struct Printer(tokio::sync::mpsc::Sender<Option<ds::user::User>>);
 
 #[async_trait::async_trait]
 impl ds::DiscordHandler for Printer {
@@ -25,7 +25,7 @@ impl ds::DiscordHandler for Printer {
     }
 }
 
-pub async fn make_client(subs: ds::Subscriptions) -> (ds::Discord, ds::User) {
+pub async fn make_client(subs: ds::Subscriptions) -> (ds::Discord, ds::user::User) {
     let (tx, mut rx) = tokio::sync::mpsc::channel(1);
 
     tracing_subscriber::fmt()

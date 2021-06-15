@@ -1,9 +1,14 @@
 use crate::{
     types::{Command, CommandKind},
+    user::UserId,
     Error,
 };
 use serde::{Deserialize, Serialize};
 
+/// A party is a uniquely identified group of users, but Discord doesn't really
+/// provide much on top of this
+///
+/// [API docs](https://discord.com/developers/docs/game-sdk/activities#data-models-activityparty-struct)
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct Party {
     /// A unique identifier for this party
@@ -15,11 +20,13 @@ pub struct Party {
     pub privacy: Option<PartyPrivacy>,
 }
 
-#[derive(serde_repr::Serialize_repr, serde_repr::Deserialize_repr, PartialEq, Debug)]
+#[derive(
+    serde_repr::Serialize_repr, serde_repr::Deserialize_repr, PartialEq, Debug, Copy, Clone,
+)]
 #[repr(u8)]
 pub enum PartyPrivacy {
-    Private,
-    Public,
+    Private = 0,
+    Public = 1,
 }
 
 pub trait IntoTimestamp {
@@ -41,6 +48,11 @@ impl<Tz: chrono::TimeZone> IntoTimestamp for chrono::DateTime<Tz> {
     }
 }
 
+/// The custom art assets to be used in the user's profile when the activity
+/// is set. These assets need to be already uploaded to Discord in the application's
+/// developer settings.
+///
+/// [Tips](https://discord.com/developers/docs/rich-presence/best-practices#have-interesting-expressive-art)
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct Assets {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -89,12 +101,80 @@ impl Assets {
     }
 }
 
+/// The start and end timestamp of the activity. These are unix timestamps.
+///
+/// [API docs](https://discord.com/developers/docs/game-sdk/activities#data-models-activitytimestamps-struct)
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct Timestamps {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub start: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub end: Option<i64>,
+    pub start: i64,
+    pub end: i64,
+}
+
+#[derive(
+    serde_repr::Serialize_repr, serde_repr::Deserialize_repr, PartialEq, Debug, Copy, Clone,
+)]
+#[repr(u8)]
+pub enum ActivityKind {
+    Playing = 0,
+    Streaming = 1,
+    Listening = 2,
+    Watching = 3,
+    Custom = 4,
+    Competing = 5,
+}
+
+impl Default for ActivityKind {
+    fn default() -> Self {
+        Self::Playing
+    }
+}
+
+/// The activity kinds you can invite a [`User`] to engage in.
+///
+/// [API docs](https://discord.com/developers/docs/game-sdk/activities#data-models-activityactiontype-enum)
+#[derive(
+    serde_repr::Serialize_repr, serde_repr::Deserialize_repr, PartialEq, Debug, Copy, Clone,
+)]
+#[repr(u8)]
+pub enum ActivityActionKind {
+    /// Invites the user to join your game
+    Join = 1,
+    /// Invites the user to spectate your game
+    Spectate = 2,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ActivityInvite {
+    /// The user that invited the current user to the activity
+    #[serde(deserialize_with = "crate::user::de_user")]
+    pub user: crate::user::User,
+    /// The activity the invite is for
+    pub activity: InviteActivity,
+    /// The kind of activity the invite is for
+    #[serde(rename = "type")]
+    pub kind: ActivityActionKind,
+    /// I think this is the unique identifier for the channel the invite
+    /// was sent to, which is (always?) the private channel between the
+    /// 2 users
+    pub channel_id: crate::types::ChannelId,
+    /// The unique message identifier for the invite
+    pub message_id: crate::types::MessageId,
+}
+
+/// The reply to send to the [`User`] who sent a join request.
+///
+/// [API docs](https://discord.com/developers/docs/game-sdk/activities#data-models-activityjoinrequestreply-enum)
+#[derive(
+    serde_repr::Serialize_repr, serde_repr::Deserialize_repr, PartialEq, Debug, Copy, Clone,
+)]
+#[repr(u8)]
+pub enum JoinRequestReply {
+    /// Rejects the join request
+    No = 0,
+    /// Accepts the join request
+    Yes = 1,
+    /// Ignores the join request
+    Ignore = 2,
 }
 
 #[derive(Default, Debug, Deserialize, Serialize)]
@@ -117,9 +197,26 @@ pub struct Activity {
     /// Secret passwords for joining and spectating the player's game
     #[serde(skip_serializing_if = "Option::is_none")]
     pub secrets: Option<Secrets>,
+    #[serde(skip_serializing, rename = "type")]
+    pub kind: ActivityKind,
     #[serde(default)]
     /// Whether this activity is an instanced context, like a match
     pub instance: bool,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct InviteActivity {
+    /// The unique identifier for the activity
+    pub session_id: String,
+    /// The timestamp the activity was created
+    #[serde(
+        skip_serializing,
+        deserialize_with = "crate::util::timestamp::deserialize_opt"
+    )]
+    pub created_at: Option<chrono::DateTime<chrono::Utc>>,
+    /// The usual activity data
+    #[serde(flatten)]
+    pub details: Activity,
 }
 
 #[derive(Debug, Deserialize)]
@@ -128,7 +225,7 @@ pub struct SetActivity {
     activity: Activity,
     /// The name of the application
     name: Option<String>,
-    #[serde(deserialize_with = "crate::types::string::deserialize_opt")]
+    #[serde(deserialize_with = "crate::util::string::deserialize_opt")]
     application_id: Option<crate::AppId>,
 }
 
@@ -147,10 +244,10 @@ pub struct Secrets {
 }
 
 #[derive(Serialize)]
-pub(crate) struct ActivityArgs {
+pub struct ActivityArgs {
     pid: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
-    activity: Option<Activity>,
+    pub activity: Option<Activity>,
 }
 
 impl Default for ActivityArgs {
@@ -159,6 +256,13 @@ impl Default for ActivityArgs {
             pid: std::process::id(),
             activity: None,
         }
+    }
+}
+
+impl From<ActivityBuilder> for ActivityArgs {
+    #[inline]
+    fn from(ab: ActivityBuilder) -> Self {
+        ab.inner
     }
 }
 
@@ -210,7 +314,7 @@ impl ActivityBuilder {
         self
     }
 
-    /// The start and optionally end of a "game" or "session".
+    /// The start and end of a "game" or "session".
     pub fn timestamps(
         mut self,
         start: Option<impl IntoTimestamp>,
@@ -226,10 +330,13 @@ impl ActivityBuilder {
                     return self;
                 }
 
-                Some(Timestamps { start, end })
+                Some(Timestamps { start: st, end: et })
             }
             (None, None) => return self,
-            _ => Some(Timestamps { start, end }),
+            _ => {
+                tracing::warn!("Both start and end timestamp must be set");
+                return self;
+            }
         };
 
         match &mut self.inner.activity {
@@ -354,12 +461,17 @@ impl ActivityBuilder {
 }
 
 impl crate::Discord {
-    /// Updates the rich presence for the logged in [`User`].
-    pub async fn update_presence(
+    /// Sets the current [`User]'s presence in Discord to a new activity.
+    ///
+    /// # Errors
+    /// This has a rate limit of 5 updates per 20 seconds.
+    ///
+    /// [API docs](https://discord.com/developers/docs/game-sdk/activities#updateactivity)
+    pub async fn update_activity(
         &self,
-        presence: ActivityBuilder,
+        activity: impl Into<ActivityArgs>,
     ) -> Result<Option<Activity>, Error> {
-        let rx = self.send_rpc(CommandKind::SetActivity, presence.inner)?;
+        let rx = self.send_rpc(CommandKind::SetActivity, activity.into())?;
 
         // TODO: Keep track of the last set activity and send it immediately if
         // the connection to Discord is lost then reestablished?
@@ -368,8 +480,80 @@ impl crate::Discord {
         })
     }
 
+    /// Invites the specified [`User`] to join the current [`User`]'s game.
+    ///
+    /// # Errors
+    /// The current [`User`] must have their presence updated with all of the
+    /// [required fields](https://discord.com/developers/docs/game-sdk/activities#activity-action-field-requirements)
+    /// otherwise this call will fail.
+    ///
+    /// [API docs](https://discord.com/developers/docs/game-sdk/activities#sendinvite)
+    pub async fn invite_user(
+        &self,
+        user_id: UserId,
+        message: impl Into<String>,
+        kind: ActivityActionKind,
+    ) -> Result<(), Error> {
+        #[derive(Serialize)]
+        struct Invite {
+            pid: u32,
+            user_id: UserId,
+            content: String,
+            #[serde(rename = "type")]
+            kind: ActivityActionKind,
+        }
+
+        let rx = self.send_rpc(
+            CommandKind::ActivityInviteUser,
+            Invite {
+                pid: std::process::id(),
+                user_id,
+                content: message.into(),
+                kind,
+            },
+        )?;
+
+        // TODO: Keep track of the last set activity and send it immediately if
+        // the connection to Discord is lost then reestablished?
+        handle_response!(rx, Command::ActivityInviteUser => {
+            Ok(())
+        })
+    }
+
+    /// Accepts the invite to another user's activity.
+    ///
+    /// [API docs](https://discord.com/developers/docs/game-sdk/activities#acceptinvite)
+    pub async fn accept_invite(&self, invite: &ActivityInvite) -> Result<(), Error> {
+        #[derive(Serialize)]
+        struct Accept<'stack> {
+            user_id: UserId,
+            #[serde(rename = "type")]
+            kind: ActivityActionKind,
+            session_id: &'stack str,
+            channel_id: crate::types::ChannelId,
+            message_id: crate::types::MessageId,
+        }
+
+        let rx = self.send_rpc(
+            CommandKind::AcceptActivityInvite,
+            Accept {
+                user_id: invite.user.id,
+                kind: invite.kind,
+                session_id: &invite.activity.session_id,
+                channel_id: invite.channel_id,
+                message_id: invite.message_id,
+            },
+        )?;
+
+        handle_response!(rx, Command::AcceptActivityInvite => {
+            Ok(())
+        })
+    }
+
     /// Clears the rich presence for the logged in [`User`].
-    pub async fn clear_presence(&self) -> Result<Option<Activity>, Error> {
+    ///
+    /// [API docs](https://discord.com/developers/docs/game-sdk/activities#clearactivity)
+    pub async fn clear_activity(&self) -> Result<Option<Activity>, Error> {
         let rx = self.send_rpc(CommandKind::SetActivity, ActivityArgs::default())?;
 
         handle_response!(rx, Command::SetActivity(sa) => {

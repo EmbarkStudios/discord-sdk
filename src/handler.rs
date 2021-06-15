@@ -129,9 +129,9 @@ pub(crate) fn handler_task(
                 Msg::Error { nonce, error, .. } => match nonce {
                     Some(nonce) => match pop_nonce(nonce) {
                         Some(ni) => {
-                            if let Err(error) = ni.tx.send(Err(error)) {
+                            if let Err(err) = ni.tx.send(Err(error)) {
                                 tracing::warn!(
-                                    error = ?error.unwrap_err(),
+                                    error = ?err,
                                     nonce = nonce,
                                     "error result dropped as receiver was closed",
                                 );
@@ -177,7 +177,7 @@ fn process_frame(data_buf: Vec<u8>) -> Msg {
     struct RawMsg {
         cmd: Option<CommandKind>,
         evt: Option<EventKind>,
-        #[serde(deserialize_with = "crate::types::string::deserialize_opt")]
+        #[serde(deserialize_with = "crate::util::string::deserialize_opt")]
         nonce: Option<usize>,
     }
 
@@ -223,10 +223,16 @@ fn process_frame(data_buf: Vec<u8>) -> Msg {
         }
         Some(_) => match serde_json::from_slice::<crate::types::EventFrame>(&data_buf) {
             Ok(event_frame) => Msg::Event(event_frame.inner),
-            Err(e) => Msg::Error {
-                nonce: rm.nonce,
-                error: crate::Error::Json(e),
-            },
+            Err(e) => {
+                tracing::warn!(
+                    "failed to deserialize event: {:?}",
+                    std::str::from_utf8(&data_buf)
+                );
+                Msg::Error {
+                    nonce: rm.nonce,
+                    error: crate::Error::Json(e),
+                }
+            }
         },
         None => match serde_json::from_slice(&data_buf) {
             Ok(cmd_frame) => Msg::Command {
@@ -235,10 +241,17 @@ fn process_frame(data_buf: Vec<u8>) -> Msg {
                     .cmd
                     .expect("successfully deserialized command with 'cmd' field"),
             },
-            Err(e) => Msg::Error {
-                nonce: rm.nonce,
-                error: crate::Error::Json(e),
-            },
+            Err(e) => {
+                tracing::warn!(
+                    "failed to deserialize command: {:?}",
+                    std::str::from_utf8(&data_buf)
+                );
+
+                Msg::Error {
+                    nonce: rm.nonce,
+                    error: crate::Error::Json(e),
+                }
+            }
         },
     }
 }

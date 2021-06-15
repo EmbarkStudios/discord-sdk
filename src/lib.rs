@@ -80,18 +80,18 @@
 
 #[macro_use]
 mod util;
-mod activity;
+pub mod activity;
 pub mod error;
 mod handler;
 mod io;
 pub mod lobby;
 pub mod registration;
 mod types;
+pub mod user;
 
-pub use activity::{ActivityBuilder, Assets, IntoTimestamp, PartyPrivacy, Secrets};
 pub use error::{DiscordApiErr, DiscordErr, Error};
+pub use types::Event;
 use types::{Command, CommandKind};
-pub use types::{Event, JoinReply, User};
 pub type AppId = i64;
 
 use crossbeam_channel as cc;

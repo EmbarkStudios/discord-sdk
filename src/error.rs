@@ -120,7 +120,7 @@ pub enum DiscordApiErr {
         code: Option<u32>,
         message: Option<String>,
     },
-    #[error("{reason}")]
+    #[error("invalid command: {reason}")]
     InvalidCommand { reason: String },
 }
 
@@ -159,6 +159,14 @@ impl<'stack> From<Option<crate::types::ErrorPayloadStack<'stack>>> for DiscordAp
                                 "Already connecting to lobby.",
                                 Self::AlreadyConnectingToLobby,
                             ),
+                            Some(msg) if msg.starts_with("Invalid command: ") => {
+                                Self::InvalidCommand {
+                                    reason: msg
+                                        .strip_prefix("Invalid command: ")
+                                        .unwrap_or("unknown")
+                                        .to_owned(),
+                                }
+                            }
                             _ => Self::Generic {
                                 code,
                                 message: message.map(|s| s.into_owned()),

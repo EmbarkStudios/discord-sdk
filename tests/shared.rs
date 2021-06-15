@@ -11,6 +11,7 @@ pub fn init_logger() {
     let _ = tracing_subscriber::fmt()
         .compact()
         .with_max_level(tracing::Level::TRACE)
+        .with_test_writer()
         .try_init();
 }
 
@@ -22,7 +23,7 @@ pub enum Msg {
 
 pub struct Client {
     pub discord: ds::Discord,
-    pub user: ds::User,
+    pub user: ds::user::User,
     pub events: mpsc::UnboundedReceiver<Msg>,
 }
 

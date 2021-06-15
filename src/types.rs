@@ -1,11 +1,11 @@
 use crate::{
     lobby::{self, Lobby, LobbyId},
-    Error,
+    user::{User, UserId},
 };
 use serde::{Deserialize, Serialize};
-use std::convert::TryFrom;
 
-pub type UserId = Snowflake;
+pub type ChannelId = Snowflake;
+pub type MessageId = Snowflake;
 
 /// Message sent by Discord to close the connection
 #[derive(Deserialize)]
@@ -69,7 +69,7 @@ pub enum Event {
         version: u32,
         config: DiscordConfig,
         /// The user that is logged into the Discord application we connected to
-        #[serde(deserialize_with = "de_user")]
+        #[serde(deserialize_with = "crate::user::de_user")]
         user: User,
     },
     /// Fires when we've done something naughty and Discord is telling us to stop.
@@ -79,6 +79,12 @@ pub enum Event {
     /// Fired when the connection has been interrupted between us and Discord
     #[serde(skip)]
     Disconnected { reason: String },
+
+    /// Fired when any details on the current logged in user are changed.
+    CurrentUserUpdate {
+        #[serde(flatten, deserialize_with = "crate::user::de_user")]
+        user: User,
+    },
 
     /// Sent by Discord when the local user has requested to join a game, and
     /// the remote user has accepted their request.
@@ -94,9 +100,13 @@ pub enum Event {
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/activities#onactivityjoinrequest)
     ActivityJoinRequest {
-        #[serde(deserialize_with = "de_user")]
+        #[serde(deserialize_with = "crate::user::de_user")]
         user: User,
     },
+    /// Fires when the current user is invited by another user to their game.
+    ///
+    /// [API docs](https://discord.com/developers/docs/game-sdk/activities#onactivityinvite)
+    ActivityInvite(Box<crate::activity::ActivityInvite>),
 
     /// Event fired when a user starts speaking in a lobby voice channel.
     ///
@@ -183,6 +193,8 @@ pub(crate) enum Command {
     UpdateLobbyMember,
 
     SetActivity(Box<Option<crate::activity::SetActivity>>),
+    ActivityInviteUser,
+    AcceptActivityInvite,
 }
 
 /// An RPC sent from Discord as JSON, in response to an RPC sent by us.
@@ -201,7 +213,7 @@ pub(crate) struct CommandFrame {
     pub(crate) inner: Command,
     /// This nonce will match the nonce of the request from us that initiated
     /// this response
-    #[serde(deserialize_with = "string::deserialize")]
+    #[serde(deserialize_with = "crate::util::string::deserialize")]
     pub(crate) nonce: usize,
 }
 
@@ -247,15 +259,6 @@ pub(crate) enum EventKind {
     SpeakingStop,
 }
 
-/// The reply to send to the [`User`] who sent a join request
-#[derive(Copy, Clone)]
-pub enum JoinReply {
-    /// Allow the user to send a join the local user's session
-    Accept,
-    /// Disallow the user from joining the local user's session
-    Reject,
-}
-
 /// The different RPC command types
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -274,6 +277,10 @@ pub enum CommandKind {
     SendActivityJoinInvite,
     /// RPC sent when the local user has [`JoinReply::Reject`]ed a join request
     CloseActivityRequest,
+    /// RPC sent to invite another [`User`]
+    ActivityInviteUser,
+    /// RPC sent to accept the invite of another [`User`]
+    AcceptActivityInvite,
 
     /// RPC sent to create a lobby
     CreateLobby,
@@ -297,191 +304,6 @@ pub enum CommandKind {
     UpdateLobbyMember,
 }
 
-/// A Discord user
-#[derive(Clone)]
-pub struct User {
-    /// The user's id
-    pub id: UserId,
-    /// The username
-    pub username: String,
-    /// The user's unique discriminator (ie. the #<number> after their name) to
-    /// disambiguate between users with the same username
-    pub discriminator: Option<u32>,
-    /// The MD5 hash of the user's avatar
-    pub avatar: Option<[u8; 16]>,
-}
-
-use std::fmt;
-
-impl fmt::Debug for User {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("User")
-            .field("id", &self.id)
-            .field("username", &self.username)
-            .field("discriminator", &self.discriminator)
-            .finish()
-    }
-}
-
-/// Display the name of the user exactly as Discord does, eg `john.smith#1337`.
-impl fmt::Display for User {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.username)?;
-
-        if let Some(disc) = self.discriminator {
-            write!(f, "#{}", disc)?;
-        }
-
-        Ok(())
-    }
-}
-
-/// Inner type purely used for deserialization because writing it manually is
-/// annoying.
-///
-/// [API docs](https://discord.com/developers/docs/game-sdk/activities#data-models-user-struct)
-#[derive(Deserialize)]
-struct DeUser<'u> {
-    /// The i64 unique id of the user, but serialized as a string for I guess
-    /// backwards compatiblity
-    id: Option<UserId>,
-    /// The user's username
-    username: Option<&'u str>,
-    /// A u32 discriminator (serialized as a string, again) to disambiguate
-    /// between users with the same username
-    discriminator: Option<&'u str>,
-    /// A hex-encoded MD5 hash of the user's avatar
-    avatar: Option<&'u str>,
-}
-
-pub(crate) fn de_user<'de, D>(d: D) -> Result<User, D::Error>
-where
-    D: serde::de::Deserializer<'de>,
-{
-    let u: DeUser<'de> = serde::de::Deserialize::deserialize(d)?;
-    User::try_from(u).map_err(serde::de::Error::custom)
-}
-
-impl<'de> TryFrom<DeUser<'de>> for User {
-    type Error = Error;
-
-    fn try_from(u: DeUser<'de>) -> Result<Self, Self::Error> {
-        let id = u.id.ok_or(Error::MissingField("id"))?;
-        let username = u
-            .username
-            .ok_or(Error::MissingField("username"))?
-            .to_owned();
-
-        // We _could_ ignore parse failures for this, but that might be confusing
-        let discriminator = match u.discriminator {
-            Some(d) => Some(
-                d.parse()
-                    .map_err(|_err| Error::InvalidField("discriminator"))?,
-            ),
-            None => None,
-        };
-        // We don't really do anything with this so it's allowed to fail
-        let avatar = match u.avatar {
-            Some(a) => {
-                let avatar = a.strip_prefix("a_").unwrap_or(a);
-
-                if avatar.len() != 32 {
-                    None
-                } else {
-                    let mut md5 = [0u8; 16];
-                    let mut valid = true;
-
-                    for (ind, exp) in avatar.as_bytes().chunks(2).enumerate() {
-                        let mut cur;
-
-                        match exp[0] {
-                            b'A'..=b'F' => cur = exp[0] - b'A' + 10,
-                            b'a'..=b'f' => cur = exp[0] - b'a' + 10,
-                            b'0'..=b'9' => cur = exp[0] - b'0',
-                            c => {
-                                tracing::debug!("invalid character '{}' found in avatar", c);
-                                valid = false;
-                                break;
-                            }
-                        }
-
-                        cur <<= 4;
-
-                        match exp[1] {
-                            b'A'..=b'F' => cur |= exp[1] - b'A' + 10,
-                            b'a'..=b'f' => cur |= exp[1] - b'a' + 10,
-                            b'0'..=b'9' => cur |= exp[1] - b'0',
-                            c => {
-                                tracing::debug!("invalid character '{}' found in avatar", c);
-                                valid = false;
-                                break;
-                            }
-                        }
-
-                        md5[ind] = cur;
-                    }
-
-                    valid.then(|| md5)
-                }
-            }
-            None => None,
-        };
-
-        Ok(Self {
-            id,
-            username,
-            discriminator,
-            avatar,
-        })
-    }
-}
-
-pub(crate) mod string {
-    use std::fmt::Display;
-    use std::str::FromStr;
-
-    use serde::{de, Deserialize, Deserializer};
-
-    // pub fn serialize<T, S>(value: &T, serializer: S) -> Result<S::Ok, S::Error>
-    // where
-    //     T: Display,
-    //     S: Serializer,
-    // {
-    //     serializer.collect_str(value)
-    // }
-
-    pub fn deserialize<'de, T, D>(deserializer: D) -> Result<T, D::Error>
-    where
-        T: FromStr,
-        T::Err: Display,
-        D: Deserializer<'de>,
-    {
-        String::deserialize(deserializer)?
-            .parse()
-            .map_err(de::Error::custom)
-    }
-
-    // pub fn serialize_opt<T, S>(value: &Option<T>, serializer: S) -> Result<S::Ok, S::Error>
-    // where
-    //     T: Display,
-    //     S: Serializer,
-    // {
-    //     serializer.collect_str(value.as_ref().unwrap())
-    // }
-
-    pub fn deserialize_opt<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
-    where
-        T: FromStr,
-        T::Err: Display,
-        D: Deserializer<'de>,
-    {
-        match Option::<String>::deserialize(deserializer)? {
-            Some(s) => Ok(Some(s.parse().map_err(de::Error::custom)?)),
-            None => Ok(None),
-        }
-    }
-}
-
 /// Discord uses [snowflakes](https://discord.com/developers/docs/reference#snowflakes)
 /// for most/all of their unique identifiers, including users, lobbies, etc
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Ord, Eq)]
@@ -497,6 +319,8 @@ impl Snowflake {
         chrono::Utc.timestamp(ts_seconds as i64, ts_nanos)
     }
 }
+
+use std::fmt;
 
 impl fmt::Display for Snowflake {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
