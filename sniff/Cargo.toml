@@ -1,0 +1,9 @@
+[package]
+name = "sniff"
+version = "0.1.0"
+authors = ["Jake Shadle <jake.shadle@embark-studios.com>"]
+edition = "2018"
+
+[dependencies]
+discord_game_sdk = "1.0"
+structopt = "0.3"
