@@ -11,7 +11,7 @@ pub fn init_logger() {
     let _ = tracing_subscriber::fmt()
         .compact()
         .with_max_level(tracing::Level::TRACE)
-        .with_test_writer()
+        //.with_test_writer()
         .try_init();
 }
 

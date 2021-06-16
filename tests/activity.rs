@@ -33,12 +33,12 @@ async fn test_activity() {
             match event {
                 shared::Msg::Event(ds::Event::ActivityInvite(invite)) => {
                     if let Some(tx) = invite_tx.take() {
-                        tx.send(invite);
+                        tx.send(invite).unwrap();
                     }
                 }
                 shared::Msg::Event(ds::Event::ActivityJoin { secret }) => {
                     if let Some(tx) = join_tx.take() {
-                        tx.send(secret);
+                        tx.send(secret).unwrap();
                     }
                 }
                 _ => {}
@@ -89,7 +89,7 @@ async fn test_activity() {
         .expect("timed out waiting for invite")
         .expect("event task dropped");
 
-    let accepted = two.accept_invite(&invite).await;
+    two.accept_invite(&invite).await.unwrap();
 
     tracing::info!("2 => waiting for join");
     let secret = tokio::time::timeout(std::time::Duration::from_secs(5), join_rx)

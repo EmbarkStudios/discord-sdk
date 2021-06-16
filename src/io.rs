@@ -179,7 +179,7 @@ pub(crate) fn start_io_task(app_id: i64) -> IoTask {
 
             return match ClientOptions::new().open(&socket_path) {
                 Ok(stream) => {
-                    tracing::debug!("connected to {}!", socket_path);
+                    tracing::debug!("connected to {}! - {:#?}", socket_path, stream.info());
                     Ok(stream)
                 }
                 Err(e) => {

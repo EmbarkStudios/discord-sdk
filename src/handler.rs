@@ -76,6 +76,8 @@ pub(crate) fn handler_task(
                 crate::io::IoMsg::Frame(frame) => process_frame(frame),
             };
 
+            tracing::debug!("received msg: {:#?}", msg);
+
             match msg {
                 Msg::Event(event) => {
                     if let Event::Ready { .. } = &event {
@@ -153,6 +155,7 @@ pub(crate) fn handler_task(
     })
 }
 
+#[derive(Debug)]
 pub(crate) enum Msg {
     Command {
         command: crate::types::CommandFrame,
