@@ -52,12 +52,6 @@ async fn test_activity() {
     let one = one.discord;
     let two = two.discord;
 
-    // wait a few seconds on windows, just to see if it's because of slow I/O?
-    #[cfg(windows)]
-    {
-        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-    }
-
     let party_id = "partyfun123";
     tracing::info!(
         "1 => updating activity: {:#?}",
@@ -79,6 +73,12 @@ async fn test_activity() {
         .await
         .expect("failed to update presence")
     );
+
+    // wait a few seconds on windows, just to see if it's because of slow I/O?
+    #[cfg(windows)]
+    {
+        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+    }
 
     tracing::info!("1 => inviting {}", two_user);
     one.invite_user(
