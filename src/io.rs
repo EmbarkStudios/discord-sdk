@@ -179,7 +179,7 @@ pub(crate) fn start_io_task(app_id: i64) -> IoTask {
 
             return match ClientOptions::new().open(&socket_path) {
                 Ok(stream) => {
-                    tracing::debug!("connected to {}! - {:#?}", socket_path, stream.info());
+                    tracing::debug!("connected to {}!", socket_path);
                     Ok(stream)
                 }
                 Err(e) => {
@@ -322,8 +322,6 @@ pub(crate) fn start_io_task(app_id: i64) -> IoTask {
                                                             "Dropped RPC as queue is too full"
                                                         );
                                                     }
-
-                                                    tracing::debug!("sent frame");
                                                 }
                                                 OpCode::Ping => {
                                                     let pong_response =
@@ -394,7 +392,6 @@ pub(crate) fn start_io_task(app_id: i64) -> IoTask {
                                     top_message = None;
                                 } else {
                                     *cursor += n;
-                                    tracing::warn!("split write {} / {}", n, to_write);
                                 }
                             }
                             Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {

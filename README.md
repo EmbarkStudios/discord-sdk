@@ -19,7 +19,7 @@ An (unofficial) open source Rust implementation of the [Discord Game SDK](https:
 
 - You use Rust for your project and want to integrate features such as [rich presence/activities](https://discord.com/rich-presence) provided by Discord.
 - You don't want to have a dependency on a closed source, shared library.
-- You like to live dangerously (though this library also have some automated tests!).
+- You like to live dangerously (though this library does also have some automated tests!).
 
 ## Implemented Features
 ### TODO: [Achievements](https://discord.com/developers/docs/game-sdk/achievements)

@@ -193,7 +193,7 @@ impl Discord {
         cmd: types::CommandKind,
         msg: T,
     ) -> Result<tokio::sync::oneshot::Receiver<Result<Command, Error>>, Error> {
-        // Increment the nonce, we use this in the handler to task to pair the response
+        // Increment the nonce, we use this in the handler task to pair the response
         // to this request
         let nonce = self
             .nonce

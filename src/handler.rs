@@ -76,8 +76,6 @@ pub(crate) fn handler_task(
                 crate::io::IoMsg::Frame(frame) => process_frame(frame),
             };
 
-            tracing::debug!("received msg: {:#?}", msg);
-
             match msg {
                 Msg::Event(event) => {
                     if let Event::Ready { .. } = &event {
