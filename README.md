@@ -118,6 +118,28 @@ Also note, the SDK itself and its documentation uses the utterly confusing termi
 
 - [x] [Current User Update](https://discord.com/developers/docs/game-sdk/users#oncurrentuserupdate)
 
+## Testing
+
+Unfortunately Discord does not provide a convenient way to perform automated testing, as it requires an actual working Discord application to be running and logged in, which makes automated (particularly headless) testing...annoying.
+
+For now, it's required that you manually spin up 2 different Discord applications (eg, Stable and Canary) and log in with separate accounts on the same machine, then run one test at a time.
+
+### Activities
+
+**NOTE**: This test does not work on Windows due to a bug in Discord with the `Invite` command.
+
+```sh
+cargo test --features local-testing test_activity
+```
+
+### Lobbies
+
+**NOTE**: This a does not test the lobby `search` functionality as that command seems to be non-functioning and never returns results, even if the [REST](https://discord.com/developers/docs/game-sdk/lobbies#create-lobby-search) equivalent does return the expected results.
+
+```sh
+cargo test --features local-testing test_local_lobbies
+```
+
 ## Contribution
 
 [![Contributor Covenant](https://img.shields.io/badge/contributor%20covenant-v1.4-ff69b4.svg)](CODE_OF_CONDUCT.md)
