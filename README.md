@@ -1,26 +1,126 @@
 # ⚔️ discord-sdk
 
-<!--- FIXME: Update crate, repo and CI workflow names here! Remove any that are not relevant --->
 [![Embark](https://img.shields.io/badge/embark-open%20source-blueviolet.svg)](https://embark.dev)
 [![Embark](https://img.shields.io/badge/discord-ark-%237289da.svg?logo=discord)](https://discord.gg/dAuKfZS)
-[![Crates.io](https://img.shields.io/crates/v/rust-gpu.svg)](https://crates.io/crates/rust-gpu)
-[![Docs](https://docs.rs/rust-gpu/badge.svg)](https://docs.rs/rust-gpu)
-[![dependency status](https://deps.rs/repo/github/EmbarkStudios/rust-gpu/status.svg)](https://deps.rs/repo/github/EmbarkStudios/rust-gpu)
-[![Build status](https://github.com/EmbarkStudios/physx-rs/workflows/CI/badge.svg)](https://github.com/EmbarkStudios/physx-rs/actions)
+[![Crates.io](https://img.shields.io/crates/v/discord-sdk.svg)](https://crates.io/crates/discord-sdk)
+[![Docs](https://docs.rs/discord-sdk/badge.svg)](https://docs.rs/discord-sdk)
+[![dependency status](https://deps.rs/repo/github/EmbarkStudios/discord-sdk/status.svg)](https://deps.rs/repo/github/EmbarkStudios/discord-sdk)
+[![Build status](https://github.com/EmbarkStudios/discord-sdk/workflows/CI/badge.svg)](https://github.com/EmbarkStudios/discord-sdk/actions)
 
-Template for creating new open source repositories that follow the Embark open source guidelines.
+An (unofficial) open source Rust implementation of the [Discord Game SDK](https://discord.com/developers/docs/game-sdk/sdk-starter-guide).
 
-## TEMPLATE INSTRUCTIONS
+## Why not use this?
 
-1. Create a new repository under EmbarkStudios using this template.
-1. __Title:__ Change the first line of this README to the name of your project, and replace the sunflower with an emoji that represents your project. 🚨 Your emoji selection is critical.
-1. __Badges:__ In the badges section above, change the repo name in each URL. If you are creating something other than a Rust crate, remove the crates.io and docs badges (and feel free to add more appropriate ones for your language).
-1. __CI:__ In `./github/workflows/` rename `rust-ci.yml` (or the appropriate config for your language) to `ci.yml`. And go over it and adapt it to work for your project
-1. __Cleanup:__ Remove this section of the README and any unused files (such as configs for other languages) from the repo.
+- This project is not official and is using a largely undocumented protocol that Discord could change/break at any time in the future.
+- There is already a [Rust wrapper](https://crates.io/crates/discord_game_sdk) for the official Game SDK.
+- Your project is not also in Rust. We may add a C API for this crate in the future, but for now this is a Rust only project.
+
+## Why use this?
+
+- You use Rust for your project and want to integrate features such as [rich presence/activities](https://discord.com/rich-presence) provided by Discord.
+- You don't want to have a dependency on a closed source, shared library.
+- You like to live dangerously (though this library also have some automated tests!).
+
+## Implemented Features
+### TODO: [Achievements](https://discord.com/developers/docs/game-sdk/achievements)
+
+### [Activities (Rich Presence)](https://discord.com/developers/docs/game-sdk/activities)
+
+#### Commands
+
+- [x] [Update Activity](https://discord.com/developers/docs/game-sdk/activities#updateactivity)
+- [x] [Clear Activity](https://discord.com/developers/docs/game-sdk/activities#clearactivity)
+- [ ] [Send Join Request Reply](https://discord.com/developers/docs/game-sdk/activities#sendrequestreply)
+- [x] [Send Invite](https://discord.com/developers/docs/game-sdk/activities#sendinvite) - **NOTE**: This seems to be broken on Windows.
+- [x] [Accept Invite](https://discord.com/developers/docs/game-sdk/activities#acceptinvite)
+
+#### Events
+
+- [x] [Join](https://discord.com/developers/docs/game-sdk/activities#onactivityjoin)
+- [x] [Spectate](https://discord.com/developers/docs/game-sdk/activities#onactivityspectate)
+- [x] [Join Request](https://discord.com/developers/docs/game-sdk/activities#onactivityjoinrequest)
+- [x] [Invite](https://discord.com/developers/docs/game-sdk/activities#onactivityinvite)
+
+#### Other
+
+- [x] [Application Registration (Windows, Linux, Mac)](https://discord.com/developers/docs/game-sdk/activities#registercommand)
+
+### TODO: [Applications](https://discord.com/developers/docs/game-sdk/applications)
+
+### TODO: [Voice](https://discord.com/developers/docs/game-sdk/discord-voice)
+
+### TODO: [Images](https://discord.com/developers/docs/game-sdk/images)
+
+### [Lobbies](https://discord.com/developers/docs/game-sdk/lobbies)
+
+#### Commands
+
+- [x] [Create Lobby](https://discord.com/developers/docs/game-sdk/lobbies#createlobby)
+- [x] [Update Lobby](https://discord.com/developers/docs/game-sdk/lobbies#updatelobby)
+- [x] [Delete Lobby](https://discord.com/developers/docs/game-sdk/lobbies#deletelobby)
+- [x] [Connect Lobby](https://discord.com/developers/docs/game-sdk/lobbies#connectlobby)
+- [x] [Disconnect Lobby](https://discord.com/developers/docs/game-sdk/lobbies#disconnectlobby)
+- [x] [Update Member](https://discord.com/developers/docs/game-sdk/lobbies#updatemember)
+- [x] [Send Lobby Message](https://discord.com/developers/docs/game-sdk/lobbies#sendlobbymessage)
+- [x] [Search](https://discord.com/developers/docs/game-sdk/lobbies#search) - **NOTE**: This seems to be completely broken and never returns results.
+- [x] [Connect Voice](https://discord.com/developers/docs/game-sdk/lobbies#connectvoice)
+- [x] [Disconnect Voice](https://discord.com/developers/docs/game-sdk/lobbies#disconnectvoice)
+
+#### Events
+
+- [x] [Lobby Update](https://discord.com/developers/docs/game-sdk/lobbies#onlobbyupdate)
+- [x] [Lobby Delete](https://discord.com/developers/docs/game-sdk/lobbies#onlobbydelete)
+- [x] [Member Connect](https://discord.com/developers/docs/game-sdk/lobbies#onmemberconnect)
+- [x] [Member Update](https://discord.com/developers/docs/game-sdk/lobbies#onmemberupdate)
+- [x] [Member Disconnect](https://discord.com/developers/docs/game-sdk/lobbies#onmemberdisconnect)
+- [x] [Lobby Message](https://discord.com/developers/docs/game-sdk/lobbies#onlobbymessage)
+- [x] [Speaking](https://discord.com/developers/docs/game-sdk/lobbies#onspeaking)
+
+#### Other
+
+- [ ] [Integrated Networking](https://discord.com/developers/docs/game-sdk/lobbies#integrated-networking)
+
+### TODO: [Networking](https://discord.com/developers/docs/game-sdk/networking)
+
+### [Overlay](https://discord.com/developers/docs/game-sdk/overlay)
+
+**NOTE**: These are only tested insofar as the protocol is (probably) correct, however, the overlay is currently extremely limited, and so we were unable to test that the overlay commands _actually_ function correctly since our primary project is Vulkan.
+
+> [Note, there are a few other cases that overlay will not work with. The overlay is currently not supported for Mac, games with Vulkan support, and generally old games.](https://support.discord.com/hc/en-us/articles/217659737-Games-Overlay-101)
+
+Also note, the SDK itself and its documentation uses the utterly confusing terminology of Un/Locked when talking about the overlay, this crate instead uses `Visibility`, as in `Visible` or `Hidden`.
+
+#### Commands
+
+- [x] [Toggle Visibility](https://discord.com/developers/docs/game-sdk/overlay#setlocked)
+- [x] [Open Activity Invite](https://discord.com/developers/docs/game-sdk/overlay#openactivityinvite)
+- [x] [Open Guild Invite](https://discord.com/developers/docs/game-sdk/overlay#openguildinvite)
+- [x] [Open Voice Settings](https://discord.com/developers/docs/game-sdk/overlay#openvoicesettings) - **NOTE**: AFAICT, if your application does not have the overlay enabled (eg, because it is Vulkan or a CLI or whatnot), this will **crash Discord**.
+
+#### Events
+
+- [x] [Overlay Update](https://discord.com/developers/docs/game-sdk/overlay#ontoggle)
+
+### TODO: [Relationships](https://discord.com/developers/docs/game-sdk/relationships)
+
+### TODO: [Storage](https://discord.com/developers/docs/game-sdk/storage)
+
+### TODO?: [Store](https://discord.com/developers/docs/game-sdk/store)
+
+### [Users](https://discord.com/developers/docs/game-sdk/users)
+
+#### Commands
+
+- [ ] [Get Current User](https://discord.com/developers/docs/game-sdk/users#getcurrentuser)
+- [ ] [Get User](https://discord.com/developers/docs/game-sdk/users#getuser)
+
+#### Events
+
+- [x] [Current User Update](https://discord.com/developers/docs/game-sdk/users#oncurrentuserupdate)
 
 ## Contribution
 
-[![Contributor Covenant](https://img.shields.io/badge/contributor%20covenant-v1.4-ff69b4.svg)](../main/CODE_OF_CONDUCT.md)
+[![Contributor Covenant](https://img.shields.io/badge/contributor%20covenant-v1.4-ff69b4.svg)](CODE_OF_CONDUCT.md)
 
 We welcome community contributions to this project.
 
