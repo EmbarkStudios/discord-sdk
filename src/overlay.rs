@@ -33,7 +33,7 @@ impl Serialize for Visibility {
     where
         S: serde::Serializer,
     {
-        serializer.serialize_bool(if *self == Self::Visible { false } else { true })
+        serializer.serialize_bool(!(*self == Self::Visible))
     }
 }
 

@@ -117,9 +117,14 @@ pub(crate) enum IoMsg {
     Frame(Vec<u8>),
 }
 
+#[cfg(unix)]
+type Pipe = tokio::net::UnixStream;
+#[cfg(windows)]
+type Pipe = tokio::net::windows::named_pipe::NamedPipeClient;
+
 pub(crate) fn start_io_task(app_id: i64) -> IoTask {
     #[cfg(unix)]
-    async fn connect() -> Result<tokio::net::UnixStream, Error> {
+    async fn connect() -> Result<Pipe, Error> {
         let tmp_path = std::env::var("XDG_RUNTIME_DIR")
             .or_else(|_| std::env::var("TMPDIR"))
             .or_else(|_| std::env::var("TMP"))
@@ -130,7 +135,7 @@ pub(crate) fn start_io_task(app_id: i64) -> IoTask {
         if let Ok(id) = std::env::var("DISCORD_INSTANCE_ID") {
             let socket_path = format!("{}/discord-ipc-{}", tmp_path, id);
 
-            return match tokio::net::UnixStream::connect(&socket_path).await {
+            return match Pipe::connect(&socket_path).await {
                 Ok(stream) => {
                     tracing::debug!("connected to {}!", socket_path);
                     Ok(stream)
@@ -143,10 +148,14 @@ pub(crate) fn start_io_task(app_id: i64) -> IoTask {
         }
 
         // Discord just uses a simple round robin approach to finding a socket to use
+        let mut socket_path = format!("{}/discord-ipc-0", tmp_path);
         for seq in 0..10i32 {
-            let socket_path = format!("{}/discord-ipc-{}", tmp_path, seq);
+            socket_path.pop();
 
-            match tokio::net::UnixStream::connect(&socket_path).await {
+            use std::fmt::Write;
+            write!(&mut socket_path, "{}", seq).unwrap();
+
+            match Pipe::connect(&socket_path).await {
                 Ok(stream) => {
                     tracing::debug!("connected to {}!", socket_path);
                     return Ok(stream);
@@ -161,12 +170,14 @@ pub(crate) fn start_io_task(app_id: i64) -> IoTask {
     }
 
     #[cfg(windows)]
-    async fn connect() -> Result<tokio::net::NamedPipe, Error> {
+    async fn connect() -> Result<Pipe, Error> {
+        use tokio::net::windows::named_pipe::ClientOptions;
+
         #[cfg(feature = "local-testing")]
         if let Ok(id) = std::env::var("DISCORD_INSTANCE_ID") {
             let socket_path = format!("\\\\?\\pipe\\discord-ipc-{}", id);
 
-            return match tokio::net::NamedPipe::connect(&socket_path).await {
+            return match ClientOptions::new().open(&socket_path) {
                 Ok(stream) => {
                     tracing::debug!("connected to {}!", socket_path);
                     Ok(stream)
@@ -179,10 +190,13 @@ pub(crate) fn start_io_task(app_id: i64) -> IoTask {
         }
 
         // Discord just uses a simple round robin approach to finding a socket to use
+        let mut socket_path = "\\\\?\\pipe\\discord-ipc-0".to_owned();
         for seq in 0..10i32 {
-            let socket_path = format!("\\\\?\\pipe\\discord-ipc-{}", seq);
+            socket_path.pop();
+            use std::fmt::Write;
+            write!(&mut socket_path, "{}", seq).unwrap();
 
-            match tokio::net::NamedPipe::connect(&socket_path).await {
+            match ClientOptions::new().open(&socket_path) {
                 Ok(stream) => {
                     tracing::debug!("connected to {}!", socket_path);
                     return Ok(stream);
@@ -461,7 +475,7 @@ trait SocketStream {
 
 #[cfg(unix)]
 #[async_trait::async_trait]
-impl SocketStream for tokio::net::UnixStream {
+impl SocketStream for Pipe {
     async fn ready(&self, interest: tokio::io::Interest) -> std::io::Result<tokio::io::Ready> {
         self.ready(interest).await
     }
@@ -477,7 +491,7 @@ impl SocketStream for tokio::net::UnixStream {
 
 #[cfg(windows)]
 #[async_trait::async_trait]
-impl SocketStream for tokio::net::NamedPipe {
+impl SocketStream for Pipe {
     async fn ready(&self, interest: tokio::io::Interest) -> std::io::Result<tokio::io::Ready> {
         self.ready(interest).await
     }

@@ -30,7 +30,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_repr = "0.1"
 thiserror = "1.0"
-tokio = { version = "=1.5", features = ["net", "rt-multi-thread", "sync", "time"] }
+tokio = { version = "1.7", features = ["net", "rt-multi-thread", "sync", "time"] }
 tracing = "0.1"
 url = "2.2"
 
@@ -38,11 +38,12 @@ url = "2.2"
 winreg = "0.9"
 
 [dev-dependencies]
-tokio = { version = "=1.5", features = ["macros"] }
+tokio = { version = "1.7", features = ["macros"] }
 tracing-subscriber = "0.2"
 
 [patch.crates-io]
-# Support for Windows named pipes, needed for discord. They were removed in tokio 1.0
-# but someone added support for them back in https://github.com/tokio-rs/tokio/pull/3388
-# but that PR has been stuck for months. branch = named-pipes
-tokio = { git = "https://github.com/EmbarkStudios/tokio", rev = "e4586e6d" }
+# Support for Windows named pipes. They were removed in tokio 1.0 and added
+# back in 1.7, however, the support was basic and made them too different from
+# the unix streams, so we use our fork to add ready and try_read/write.
+# branch = named-pipes-1.7
+tokio = { git = "https://github.com/EmbarkStudios/tokio", rev = "205f7e9a" }
