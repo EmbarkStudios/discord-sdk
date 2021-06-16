@@ -5,5 +5,5 @@ authors = ["Jake Shadle <jake.shadle@embark-studios.com>"]
 edition = "2018"
 
 [dependencies]
-discord_game_sdk = { git = "https://github.com/EmbarkStudios/discord_game_sdk", rev = "464c31a" }
+discord_game_sdk = { git = "https://github.com/EmbarkStudios/discord_game_sdk", rev = "3ba5ef9" }
 structopt = "0.3"
