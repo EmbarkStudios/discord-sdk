@@ -1,21 +1,10 @@
-use crate::types::{CommandKind, ErrorPayloadStack, Event, EventKind};
+use crate::{
+    io,
+    proto::{self, CommandKind, Event, EventKind, Rpc},
+    types::ErrorPayloadStack,
+    Error,
+};
 use crossbeam_channel as cc;
-
-#[derive(serde::Serialize)]
-pub(crate) struct Rpc<T: serde::Serialize> {
-    /// The RPC type
-    pub(crate) cmd: CommandKind,
-    /// Every RPC we send to Discord needs a [`nonce`](https://en.wikipedia.org/wiki/Cryptographic_nonce)
-    /// to uniquely identify the RPC. This nonce is sent back when Discord either
-    /// responds to an RPC, or acknowledges receipt
-    pub(crate) nonce: String,
-    /// The event, only used for un/subscribe RPCs :(
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) evt: Option<EventKind>,
-    /// The arguments for the RPC, used by all RPCs other than un/subscribe :(
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) args: Option<T>,
-}
 
 /// Creates a task which receives raw frame buffers and deserializes them, and either
 /// notifying the awaiting oneshot for a command response, or in the case of events,
@@ -24,7 +13,7 @@ pub(crate) fn handler_task(
     handler: Box<dyn crate::DiscordHandler>,
     subscriptions: crate::Subscriptions,
     stx: cc::Sender<Option<Vec<u8>>>,
-    mut rrx: tokio::sync::mpsc::Receiver<crate::io::IoMsg>,
+    mut rrx: tokio::sync::mpsc::Receiver<io::IoMsg>,
     state: crate::State,
 ) -> tokio::task::JoinHandle<()> {
     tokio::task::spawn(async move {
@@ -40,7 +29,7 @@ pub(crate) fn handler_task(
 
         enum User {
             Event(Event),
-            Error(crate::Error),
+            Error(Error),
         }
 
         // Shunt the user handler to a separate task so that we don't care about it blocking
@@ -69,11 +58,11 @@ pub(crate) fn handler_task(
 
         while let Some(io_msg) = rrx.recv().await {
             let msg = match io_msg {
-                crate::io::IoMsg::Disconnected { reason } => {
+                io::IoMsg::Disconnected { reason } => {
                     user_send!(User::Event(Event::Disconnected { reason }));
                     continue;
                 }
-                crate::io::IoMsg::Frame(frame) => process_frame(frame),
+                io::IoMsg::Frame(frame) => process_frame(frame),
             };
 
             match msg {
@@ -100,13 +89,11 @@ pub(crate) fn handler_task(
                                 .send(if ni.cmd == kind {
                                     Ok(command.inner)
                                 } else {
-                                    Err(crate::Error::Discord(
-                                        crate::DiscordErr::MismatchedResponse {
-                                            expected: ni.cmd,
-                                            actual: kind,
-                                            nonce: command.nonce,
-                                        },
-                                    ))
+                                    Err(Error::Discord(crate::DiscordErr::MismatchedResponse {
+                                        expected: ni.cmd,
+                                        actual: kind,
+                                        nonce: command.nonce,
+                                    }))
                                 })
                                 .is_err()
                             {
@@ -156,13 +143,13 @@ pub(crate) fn handler_task(
 #[derive(Debug)]
 pub(crate) enum Msg {
     Command {
-        command: crate::types::CommandFrame,
+        command: proto::command::CommandFrame,
         kind: CommandKind,
     },
     Event(Event),
     Error {
         nonce: Option<usize>,
-        error: crate::Error,
+        error: Error,
     },
 }
 
@@ -193,7 +180,7 @@ fn process_frame(data_buf: Vec<u8>) -> Msg {
 
             return Msg::Error {
                 nonce: None,
-                error: crate::Error::Json(e),
+                error: Error::Json(e),
             };
         }
     };
@@ -209,20 +196,18 @@ fn process_frame(data_buf: Vec<u8>) -> Msg {
             match serde_json::from_slice::<ErrorMsg<'_>>(&data_buf) {
                 Ok(em) => Msg::Error {
                     nonce: rm.nonce,
-                    error: crate::Error::Discord(crate::DiscordErr::Api(em.data.into())),
+                    error: Error::Discord(crate::DiscordErr::Api(em.data.into())),
                 },
                 Err(e) => Msg::Error {
                     nonce: rm.nonce,
-                    error: crate::Error::Discord(crate::DiscordErr::Api(
-                        crate::DiscordApiErr::Generic {
-                            code: None,
-                            message: Some(format!("failed to deserialize error: {}", e)),
-                        },
-                    )),
+                    error: Error::Discord(crate::DiscordErr::Api(crate::DiscordApiErr::Generic {
+                        code: None,
+                        message: Some(format!("failed to deserialize error: {}", e)),
+                    })),
                 },
             }
         }
-        Some(_) => match serde_json::from_slice::<crate::types::EventFrame>(&data_buf) {
+        Some(_) => match serde_json::from_slice::<proto::event::EventFrame>(&data_buf) {
             Ok(event_frame) => Msg::Event(event_frame.inner),
             Err(e) => {
                 tracing::warn!(
@@ -231,7 +216,7 @@ fn process_frame(data_buf: Vec<u8>) -> Msg {
                 );
                 Msg::Error {
                     nonce: rm.nonce,
-                    error: crate::Error::Json(e),
+                    error: Error::Json(e),
                 }
             }
         },
@@ -250,7 +235,7 @@ fn process_frame(data_buf: Vec<u8>) -> Msg {
 
                 Msg::Error {
                     nonce: rm.nonce,
-                    error: crate::Error::Json(e),
+                    error: Error::Json(e),
                 }
             }
         },
@@ -270,10 +255,10 @@ fn subscribe_task(subs: crate::Subscriptions, stx: cc::Sender<Option<Vec<u8>>>) 
             #[cfg(target_pointer_width = "64")]
             let nunce = 0x1000000000000000 | nonce;
 
-            let _ = crate::io::serialize_message(
-                crate::io::OpCode::Frame,
+            let _ = io::serialize_message(
+                io::OpCode::Frame,
                 &Rpc::<()> {
-                    cmd: crate::types::CommandKind::Subscribe,
+                    cmd: CommandKind::Subscribe,
                     evt: Some(kind),
                     nonce: nunce.to_string(),
                     args: None,
@@ -330,10 +315,10 @@ fn subscribe_task(subs: crate::Subscriptions, stx: cc::Sender<Option<Vec<u8>>>) 
             #[cfg(target_pointer_width = "64")]
             let nunce = 0x1000000000000000 | nonce;
 
-            let _ = crate::io::serialize_message(
-                crate::io::OpCode::Frame,
+            let _ = io::serialize_message(
+                io::OpCode::Frame,
                 &Rpc {
-                    cmd: crate::types::CommandKind::Subscribe,
+                    cmd: CommandKind::Subscribe,
                     evt: Some(EventKind::OverlayUpdate),
                     nonce: nunce.to_string(),
                     args: Some(crate::overlay::OverlayPidArgs::new()),

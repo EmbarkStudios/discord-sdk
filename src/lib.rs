@@ -86,13 +86,14 @@ mod handler;
 mod io;
 pub mod lobby;
 pub mod overlay;
+mod proto;
 pub mod registration;
 mod types;
 pub mod user;
 
 pub use error::{DiscordApiErr, DiscordErr, Error};
-pub use types::Event;
-use types::{Command, CommandKind};
+pub use proto::event::Event;
+use proto::{Command, CommandKind};
 pub type AppId = i64;
 
 use crossbeam_channel as cc;
@@ -190,7 +191,7 @@ impl Discord {
     /// with the response from Discord
     fn send_rpc<T: serde::Serialize>(
         &self,
-        cmd: types::CommandKind,
+        cmd: CommandKind,
         msg: T,
     ) -> Result<tokio::sync::oneshot::Receiver<Result<Command, Error>>, Error> {
         // Increment the nonce, we use this in the handler task to pair the response
@@ -199,7 +200,7 @@ impl Discord {
             .nonce
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
-        let rpc = handler::Rpc {
+        let rpc = proto::Rpc {
             cmd,
             args: Some(msg),
             nonce: nonce.to_string(),

@@ -1,8 +1,4 @@
-use crate::{
-    types::{Command, CommandKind},
-    user::UserId,
-    Error,
-};
+use crate::{user::UserId, Command, CommandKind, Error};
 use serde::{Deserialize, Serialize};
 
 /// A party is a uniquely identified group of users, but Discord doesn't really

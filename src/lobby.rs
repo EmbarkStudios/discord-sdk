@@ -1,8 +1,4 @@
-use crate::{
-    types::{Command, CommandKind, Snowflake},
-    user::UserId,
-    DiscordErr, Error,
-};
+use crate::{types::Snowflake, user::UserId, Command, CommandKind, DiscordErr, Error};
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 

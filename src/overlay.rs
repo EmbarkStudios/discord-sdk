@@ -1,7 +1,4 @@
-use crate::{
-    types::{Command, CommandKind},
-    Error,
-};
+use crate::{Command, CommandKind, Error};
 use serde::Serialize;
 
 #[derive(Serialize)]
