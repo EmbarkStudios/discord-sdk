@@ -1,6 +1,6 @@
 /target
+sniff/target
 **/*.rs.bk
 Cargo.lock
-
 .idea
 .DS_Store
