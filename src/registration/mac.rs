@@ -1,11 +1,11 @@
+use crate::Error;
+use anyhow::{ensure, Context as _};
 use std::path::PathBuf;
 
 pub fn register_app(app: super::Application) -> Result<(), Error> {
     use super::LaunchCommand;
 
     fn inner(app: super::Application) -> anyhow::Result<()> {
-        use anyhow::{self, ensure, Context as _};
-
         match app.command {
             LaunchCommand::Url(url) => {
                 create_shim(app.id, url.into())?;
@@ -188,7 +188,7 @@ end open location
     ))
 }
 
-fn needs_overwrite(script_hash: u64, app_id: i64, app_path: &std::path::Path) -> Option<PathBuf> {
+fn needs_overwrite(script_hash: u32, app_id: i64, app_path: &std::path::Path) -> Option<PathBuf> {
     let plist_path = app_path.join("Contents/Info.plist");
 
     if !app_path.exists() {
