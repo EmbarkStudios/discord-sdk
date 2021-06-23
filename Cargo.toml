@@ -43,6 +43,7 @@ url = "2.2"
 winreg = "0.9"
 
 [dev-dependencies]
+eframe = "0.12"
 structopt = "0.3"
 tokio = { version = "1.7", features = ["macros"] }
 tracing-subscriber = "0.2"
