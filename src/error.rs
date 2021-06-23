@@ -120,6 +120,8 @@ pub enum DiscordApiErr {
         code: Option<u32>,
         message: Option<String>,
     },
+    #[error("secret used to join a lobby was invalid")]
+    InvalidLobbySecret,
     #[error("invalid command: {reason}")]
     InvalidCommand { reason: String },
 }
@@ -151,14 +153,8 @@ impl<'stack> From<Option<crate::types::ErrorPayloadStack<'stack>>> for DiscordAp
                                 .map_or_else(|| "unknown problem".to_owned(), |s| s.into_owned()),
                         },
                         4002 => match message.as_deref() {
-                            Some("Already connected to lobby.") => to_known(
-                                "Already connected to lobby.",
-                                Self::AlreadyConnectedToLobby,
-                            ),
-                            Some("Already connecting to lobby.") => to_known(
-                                "Already connecting to lobby.",
-                                Self::AlreadyConnectingToLobby,
-                            ),
+                            Some("Already connected to lobby.") => Self::AlreadyConnectedToLobby,
+                            Some("Already connecting to lobby.") => Self::AlreadyConnectingToLobby,
                             Some(msg) if msg.starts_with("Invalid command: ") => {
                                 Self::InvalidCommand {
                                     reason: msg
@@ -172,6 +168,7 @@ impl<'stack> From<Option<crate::types::ErrorPayloadStack<'stack>>> for DiscordAp
                                 message: message.map(|s| s.into_owned()),
                             },
                         },
+                        4014 => to_known("Lobby secret is invalid.", Self::InvalidLobbySecret),
                         _ => Self::Generic {
                             code,
                             message: message.map(|s| s.into_owned()),
