@@ -1,5 +1,8 @@
 pub mod events;
 pub mod search;
+pub mod state;
+
+use crate::{types::Snowflake, user::UserId, Command, CommandKind, Error};
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 
@@ -41,6 +44,20 @@ pub enum LobbyKind {
     Public = 2,
 }
 
+/// The voice states that can be attached to each lobby member
+#[derive(Deserialize, Debug, Clone)]
+pub struct VoiceState {
+    pub channel_id: crate::types::ChannelId,
+    pub deaf: bool,
+    pub mute: bool,
+    pub self_deaf: bool,
+    pub self_mute: bool,
+    pub self_video: bool,
+    pub session_id: String,
+    pub suppress: bool,
+    pub user_id: UserId,
+}
+
 #[derive(Deserialize, Debug, Clone)]
 pub struct Lobby {
     /// The unique identifier for the lobby.
@@ -67,10 +84,8 @@ pub struct Lobby {
     /// Whether the lobby is public or private.
     #[serde(rename = "type")]
     pub kind: LobbyKind,
-    /// I've never seen this filled out so I actually have no idea what the data
-    /// here is
     #[serde(default)]
-    pub voice_states: Vec<String>,
+    pub voice_states: Vec<VoiceState>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -78,11 +93,13 @@ pub struct LobbyMember {
     pub metadata: Metadata,
     #[serde(deserialize_with = "crate::user::de_user")]
     pub user: crate::user::User,
+    #[serde(skip)]
+    pub speaking: bool,
 }
 
 /// Argument used to create or modify a [`Lobby`]
 #[derive(Serialize, Clone)]
-struct LobbyArgs {
+pub struct LobbyArgs {
     /// The id for a lobby, only set when modifying
     #[serde(skip_serializing_if = "Option::is_none")]
     id: Option<LobbyId>,
@@ -102,7 +119,7 @@ struct LobbyArgs {
 }
 
 impl LobbyArgs {
-    fn modify(self, lobby: &mut Lobby) {
+    pub fn modify(self, lobby: &mut Lobby) {
         lobby.capacity = self.capacity;
         lobby.kind = self.kind;
         lobby.locked = self.locked.unwrap_or(false);
@@ -169,6 +186,19 @@ pub struct UpdateLobbyBuilder {
 }
 
 impl UpdateLobbyBuilder {
+    pub fn new(to_update: &Lobby) -> Self {
+        Self {
+            inner: LobbyArgs {
+                id: Some(to_update.id),
+                capacity: to_update.capacity,
+                kind: to_update.kind,
+                locked: if to_update.locked { Some(true) } else { None },
+                owner_id: Some(to_update.owner_id),
+                metadata: to_update.metadata.clone(),
+            },
+        }
+    }
+
     #[inline]
     pub fn capacity(mut self, capacity: Option<std::num::NonZeroU32>) -> Self {
         self.inner.capacity = capacity.map_or(16, |cap| cap.get());
@@ -230,7 +260,7 @@ impl<'s> std::convert::TryFrom<&'s str> for ConnectLobby {
 }
 
 /// A message sent by a user to a lobby
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum LobbyMessage {
     Binary(Vec<u8>),
     Text(String),
@@ -269,6 +299,7 @@ impl<'de> Deserialize<'de> for LobbyMessage {
         D: serde::Deserializer<'de>,
     {
         use serde::de;
+        use std::fmt;
 
         struct Visitor;
 
@@ -313,35 +344,8 @@ impl crate::Discord {
         let rx = self.send_rpc(CommandKind::CreateLobby, args.inner)?;
 
         handle_response!(rx, Command::CreateLobby(lobby) => {
-            *self.owned_lobby.write() = Some(lobby.clone());
-
             Ok(lobby)
         })
-    }
-
-    /// Retrieves a builder for the specified lobby to update it. This will fail
-    /// if the current [`User`] is not the owner of the lobby.
-    pub fn get_lobby_update(&self, lobby_id: LobbyId) -> Result<UpdateLobbyBuilder, Error> {
-        self.owned_lobby
-            .read()
-            .iter()
-            .find_map(|lobby| {
-                if lobby.id == lobby_id {
-                    let inner = LobbyArgs {
-                        id: Some(lobby.id),
-                        capacity: lobby.capacity,
-                        kind: lobby.kind,
-                        locked: if lobby.locked { Some(true) } else { None },
-                        owner_id: Some(lobby.owner_id),
-                        metadata: lobby.metadata.clone(),
-                    };
-
-                    Some(UpdateLobbyBuilder { inner })
-                } else {
-                    None
-                }
-            })
-            .ok_or(Error::Discord(DiscordErr::UnownedLobby(lobby_id)))
     }
 
     /// Updates a lobby.
@@ -353,37 +357,16 @@ impl crate::Discord {
     /// transactions.
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#updatelobby)
-    pub async fn update_lobby(&self, args: UpdateLobbyBuilder) -> Result<Lobby, Error> {
+    pub async fn update_lobby(&self, args: UpdateLobbyBuilder) -> Result<LobbyArgs, Error> {
         // The response for the lobby update unfortunately doesn't return any
         // actual data for the lobby, so we store the new state and set it once
         // Discord responds to the update, but only the metadata pieces that can
         // be modified by the update, so no changes to members or their metadata
         let update = args.inner.clone();
-
-        let lobby_id = update.id.ok_or(Error::Discord(DiscordErr::UnknownLobby))?;
-
         let rx = self.send_rpc(CommandKind::UpdateLobby, args.inner)?;
 
         handle_response!(rx, Command::UpdateLobby => {
-            // If ownership was transferred we remove it from the owned list, but
-            // _don't_ add it to the searched lobbies since that should be intentional
-            // by the user
-            let mut ol = self.owned_lobby.write();
-
-            match &mut *ol {
-                Some(lobby) if lobby.id == lobby_id => {
-                    // If the owner id is changed we remove it before updating it
-                    if update.owner_id != Some(lobby.owner_id) {
-                        let mut unowned_lobby = ol.take().unwrap();
-                        update.modify(&mut unowned_lobby);
-                        Ok(unowned_lobby)
-                    } else {
-                        update.modify(lobby);
-                        Ok(lobby.clone())
-                    }
-                }
-                _ => Err(Error::Discord(DiscordErr::UnownedLobby(lobby_id)))
-            }
+            Ok(update)
         })
     }
 
