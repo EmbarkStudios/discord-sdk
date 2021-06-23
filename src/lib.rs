@@ -92,6 +92,7 @@ mod types;
 pub mod user;
 
 pub use error::{DiscordApiErr, DiscordErr, Error};
+pub use handler::{handlers, wheel, DiscordHandler, DiscordMsg};
 pub use proto::event::Event;
 use proto::{Command, CommandKind};
 pub type AppId = i64;
@@ -221,17 +222,6 @@ impl Discord {
         Ok(rx)
     }
 }
-
-#[async_trait::async_trait]
-pub trait DiscordHandler: Send + Sync {
-    /// Method called when an event is received from Discord
-    async fn on_event(&self, event: Event);
-    /// Method called when an [`Error`] occurs when processing a response from
-    /// Discord that can't be attributed to a specific request that was made
-    async fn on_error(&self, error: Error);
-}
-
-use std::sync::Arc;
 
 pub(crate) struct NotifyItem {
     /// The nonce we sent on the original request, the nonce in the response

@@ -1,3 +1,6 @@
+pub mod handlers;
+pub mod wheel;
+
 use crate::{
     io,
     proto::{self, CommandKind, Event, EventKind, Rpc},
@@ -6,11 +9,23 @@ use crate::{
 };
 use crossbeam_channel as cc;
 
+#[derive(Debug)]
+pub enum DiscordMsg {
+    Event(Event),
+    Error(Error),
+}
+
+#[async_trait::async_trait]
+pub trait DiscordHandler: Send + Sync {
+    /// Method called when an [`Event`] or [`Error`] is received from Discord
+    async fn on_message(&self, msg: DiscordMsg);
+}
+
 /// Creates a task which receives raw frame buffers and deserializes them, and either
 /// notifying the awaiting oneshot for a command response, or in the case of events,
 /// broadcasting the event to
 pub(crate) fn handler_task(
-    handler: Box<dyn crate::DiscordHandler>,
+    handler: Box<dyn DiscordHandler>,
     subscriptions: crate::Subscriptions,
     stx: cc::Sender<Option<Vec<u8>>>,
     mut rrx: tokio::sync::mpsc::Receiver<io::IoMsg>,
@@ -27,24 +42,12 @@ pub(crate) fn handler_task(
                 .map(|position| lock.swap_remove(position))
         };
 
-        enum User {
-            Event(Event),
-            Error(Error),
-        }
-
         // Shunt the user handler to a separate task so that we don't care about it blocking
         // when handling events
         let (user_tx, mut user_rx) = tokio::sync::mpsc::unbounded_channel();
         let user_task = tokio::task::spawn(async move {
-            while let Some(event) = user_rx.recv().await {
-                match event {
-                    User::Event(event) => {
-                        handler.on_event(event).await;
-                    }
-                    User::Error(err) => {
-                        handler.on_error(err).await;
-                    }
-                }
+            while let Some(msg) = user_rx.recv().await {
+                handler.on_message(msg).await;
             }
         });
 
@@ -58,8 +61,8 @@ pub(crate) fn handler_task(
 
         while let Some(io_msg) = rrx.recv().await {
             let msg = match io_msg {
-                io::IoMsg::Disconnected { reason } => {
-                    user_send!(User::Event(Event::Disconnected { reason }));
+                io::IoMsg::Disconnected(err) => {
+                    user_send!(DiscordMsg::Event(Event::Disconnected { reason: err }));
                     continue;
                 }
                 io::IoMsg::Frame(frame) => process_frame(frame),
@@ -74,7 +77,7 @@ pub(crate) fn handler_task(
                         subscribe_task(subscriptions, stx.clone());
                     }
 
-                    user_send!(User::Event(event));
+                    user_send!(DiscordMsg::Event(event));
                 }
                 Msg::Command { command, kind } => {
                     if kind == CommandKind::Subscribe {
@@ -125,11 +128,11 @@ pub(crate) fn handler_task(
                             }
                         }
                         None => {
-                            user_send!(User::Error(error));
+                            user_send!(DiscordMsg::Error(error));
                         }
                     },
                     None => {
-                        user_send!(User::Error(error));
+                        user_send!(DiscordMsg::Error(error));
                     }
                 },
             }
