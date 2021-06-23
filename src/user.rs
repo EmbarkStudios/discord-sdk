@@ -1,3 +1,5 @@
+pub mod events;
+
 use crate::Error;
 use serde::Deserialize;
 use std::{convert::TryFrom, fmt};

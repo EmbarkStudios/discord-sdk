@@ -1,7 +1,9 @@
 use crate::{
-    lobby::{self, Lobby, LobbyId},
-    types::{DiscordConfig, ErrorPayload},
-    user::{User, UserId},
+    activity::events as activity_events,
+    lobby::{events as lobby_events, Lobby, LobbyId},
+    overlay::events as overlay_events,
+    types::ErrorPayload,
+    user::events as user_events,
 };
 use serde::{Deserialize, Serialize};
 
@@ -40,91 +42,42 @@ pub(crate) enum EventKind {
 #[derive(Deserialize, Debug)]
 #[serde(tag = "evt", content = "data", rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum Event {
-    /// Sent by Discord upon receipt of our [`Handshake`] message, the user is
-    /// the current user logged in to the Discord we connected to.
-    Ready {
-        /// The protocol version, we only support v1, which is fine since that is
-        /// (currently) the only version
-        #[serde(rename = "v")]
-        version: u32,
-        config: DiscordConfig,
-        /// The user that is logged into the Discord application we connected to
-        #[serde(deserialize_with = "crate::user::de_user")]
-        user: User,
-    },
     /// Fires when we've done something naughty and Discord is telling us to stop.
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/discord#error-handling)
     Error(ErrorPayload),
-    /// Fired when the connection has been interrupted between us and Discord
+
+    /// Sent by Discord upon receipt of our [`Handshake`] message, the user is
+    /// the current user logged in to the Discord we connected to.
+    Ready(user_events::ConnectEvent),
+    /// Fired when the connection has been interrupted between us and Discord,
+    /// this is a synthesized event as there are can be numerous reasons on
+    /// the client side for this to happen, in addition to Discord itself being
+    /// closed, etc.
     #[serde(skip)]
-    Disconnected { reason: String },
-
+    Disconnected { reason: crate::Error },
     /// Fired when any details on the current logged in user are changed.
-    CurrentUserUpdate {
-        #[serde(flatten, deserialize_with = "crate::user::de_user")]
-        user: User,
-    },
-
-    /// Sent by Discord when the local user has requested to join a game, and
-    /// the remote user has accepted their request.
     ///
-    /// [API docs](https://discord.com/developers/docs/game-sdk/activities#onactivityjoin)
-    ActivityJoin { secret: String },
-    /// Sent by Discord when the local user has chosen to spectate another user's
-    /// game session.
-    ///
-    /// [API docs](https://discord.com/developers/docs/game-sdk/activities#onactivityspectate)
-    ActivitySpectate { secret: String },
-    /// Fires when a user asks to join the current user's game.
-    ///
-    /// [API docs](https://discord.com/developers/docs/game-sdk/activities#onactivityjoinrequest)
-    ActivityJoinRequest {
-        #[serde(deserialize_with = "crate::user::de_user")]
-        user: User,
-    },
-    /// Fires when the current user is invited by another user to their game.
-    ///
-    /// [API docs](https://discord.com/developers/docs/game-sdk/activities#onactivityinvite)
-    ActivityInvite(Box<crate::activity::ActivityInvite>),
+    /// [API docs](https://discord.com/developers/docs/game-sdk/users#oncurrentuserupdate)
+    CurrentUserUpdate(user_events::UpdateEvent),
 
     /// Event fired when a user starts speaking in a lobby voice channel.
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onspeaking)
-    SpeakingStart {
-        /// The lobby with the voice channel
-        lobby_id: LobbyId,
-        /// The user in the lobby that started speaking
-        user_id: UserId,
-    },
+    SpeakingStart(lobby_events::SpeakingEvent),
     /// Event fired when a user stops speaking in a lobby voice channel.
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onspeaking)
-    SpeakingStop {
-        /// The lobby with the voice channel
-        lobby_id: LobbyId,
-        /// The user in the lobby that started speaking
-        user_id: UserId,
-    },
+    SpeakingStop(lobby_events::SpeakingEvent),
     /// Event fired when a user connects to a lobby.
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onmemberconnect)
-    LobbyMemberConnect {
-        /// The lobby the user connected to
-        lobby_id: LobbyId,
-        /// The details of the member that connected to the lobby
-        member: lobby::LobbyMember,
-    },
+    LobbyMemberConnect(lobby_events::MemberEvent),
     /// Event fired when a user disconnects from a lobby.
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onmemberdisconnect)
-    LobbyMemberDisconnect {
-        /// The lobby the user disconnected from
-        lobby_id: LobbyId,
-        /// The details of the member that disconnected from the lobby
-        member: lobby::LobbyMember,
-    },
-    /// Event fired when a lobby is deleted.
+    LobbyMemberDisconnect(lobby_events::MemberEvent),
+    /// Event fired when a lobby is deleted, or the user disconnects from the lobby.
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onlobbydelete)
     LobbyDelete { id: LobbyId },
@@ -136,37 +89,39 @@ pub enum Event {
     /// Event fired when the metadata for a lobby member is changed.
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onmemberupdate)
-    LobbyMemberUpdate {
-        /// The lobby that contains the member that was updated
-        lobby_id: LobbyId,
-        /// The updated member
-        member: lobby::LobbyMember,
-    },
+    LobbyMemberUpdate(lobby_events::MemberEvent),
     /// Event fired when a message is sent to the lobby.
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onlobbymessage)
-    LobbyMessage {
-        /// The lobby the messsage was sent to
-        lobby_id: LobbyId,
-        /// The lobby member that sent the message
-        sender_id: UserId,
-        /// The message itself
-        data: lobby::LobbyMessage,
-    },
+    LobbyMessage(lobby_events::MessageEvent),
+    #[serde(skip)]
+    LobbyCreate(Lobby),
+    #[serde(skip)]
+    LobbyConnect(Lobby),
+
+    /// Sent by Discord when the local user has requested to join a game, and
+    /// the remote user has accepted their request.
+    ///
+    /// [API docs](https://discord.com/developers/docs/game-sdk/activities#onactivityjoin)
+    ActivityJoin(activity_events::SecretEvent),
+    /// Sent by Discord when the local user has chosen to spectate another user's
+    /// game session.
+    ///
+    /// [API docs](https://discord.com/developers/docs/game-sdk/activities#onactivityspectate)
+    ActivitySpectate(activity_events::SecretEvent),
+    /// Fires when a user asks to join the current user's game.
+    ///
+    /// [API docs](https://discord.com/developers/docs/game-sdk/activities#onactivityjoinrequest)
+    ActivityJoinRequest(activity_events::JoinRequestEvent),
+    /// Fires when the current user is invited by another user to their game.
+    ///
+    /// [API docs](https://discord.com/developers/docs/game-sdk/activities#onactivityinvite)
+    ActivityInvite(activity_events::InviteEvent),
 
     /// Event fired when the overlay state changes.
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/overlay#ontoggle)
-    OverlayUpdate {
-        /// Whether the user has the overlay enabled or disabled. If the overlay
-        /// is disabled, all the functionality of the SDK will still work. The
-        /// calls will instead focus the Discord client and show the modal there
-        /// instead of in application.
-        enabled: bool,
-        /// Whether the overlay is visible or not.
-        #[serde(rename = "locked")]
-        visible: crate::overlay::Visibility,
-    },
+    OverlayUpdate(overlay_events::UpdateEvent),
 }
 
 /// An event sent from Discord as JSON.
@@ -185,4 +140,54 @@ pub(crate) struct EventFrame {
     /// nonce is not set for events and cmd is always `DISPATCH`.
     #[serde(flatten)]
     pub(crate) inner: Event,
+}
+
+pub enum ClassifiedEvent {
+    Lobby(lobby_events::LobbyEvent),
+    User(user_events::UserEvent),
+    Activity(activity_events::ActivityEvent),
+    Overlay(overlay_events::OverlayEvent),
+}
+
+impl From<Event> for ClassifiedEvent {
+    fn from(eve: Event) -> Self {
+        use activity_events::ActivityEvent as AE;
+        use lobby_events::LobbyEvent as LE;
+        use user_events::UserEvent as UE;
+
+        match eve {
+            // User/connection
+            Event::Ready(ce) => Self::User(UE::Connect(ce)),
+            Event::Disconnected { reason } => {
+                Self::User(UE::Disconnect(user_events::DisconnectEvent { reason }))
+            }
+            Event::CurrentUserUpdate(user) => Self::User(UE::Update(user)),
+
+            // Lobby
+            Event::SpeakingStart(se) => Self::Lobby(LE::SpeakingStart(se)),
+            Event::SpeakingStop(se) => Self::Lobby(LE::SpeakingStop(se)),
+            Event::LobbyDelete { id } => Self::Lobby(LE::Delete { id }),
+            Event::LobbyUpdate(lob) => Self::Lobby(LE::Update(lob)),
+            Event::LobbyMemberConnect(me) => Self::Lobby(LE::MemberConnect(me)),
+            Event::LobbyMemberDisconnect(me) => Self::Lobby(LE::MemberDisconnect(me)),
+            Event::LobbyMemberUpdate(me) => Self::Lobby(LE::MemberUpdate(me)),
+            Event::LobbyMessage(msg) => Self::Lobby(LE::Message(msg)),
+            Event::LobbyCreate(lobby) => Self::Lobby(LE::Create(lobby)),
+            Event::LobbyConnect(lobby) => Self::Lobby(LE::Connect(lobby)),
+
+            // Activity
+            Event::ActivityJoin(secret) => Self::Activity(AE::Join(secret)),
+            Event::ActivitySpectate(secret) => Self::Activity(AE::Spectate(secret)),
+            Event::ActivityJoinRequest(jr) => Self::Activity(AE::JoinRequest(jr)),
+            Event::ActivityInvite(inv) => Self::Activity(AE::Invite(inv)),
+
+            // Overlay
+            Event::OverlayUpdate(update) => {
+                Self::Overlay(overlay_events::OverlayEvent::Update(update))
+            }
+
+            // Errors get converted before this path
+            Event::Error(_) => unreachable!(),
+        }
+    }
 }

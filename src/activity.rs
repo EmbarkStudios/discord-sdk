@@ -1,3 +1,5 @@
+pub mod events;
+
 use crate::{user::UserId, Command, CommandKind, Error};
 use serde::{Deserialize, Serialize};
 
