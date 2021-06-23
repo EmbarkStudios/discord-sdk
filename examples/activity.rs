@@ -5,9 +5,15 @@ mod shared;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    let (client, user) = shared::make_client(ds::Subscriptions::ACTIVITY).await;
+    let client = shared::make_client(ds::Subscriptions::ACTIVITY).await;
 
-    tracing::info!("connected to Discord, local user is {:#?}", user);
+    let mut activity_events = client.wheel.activity();
+
+    tokio::task::spawn(async move {
+        while let Ok(ae) = activity_events.0.recv().await {
+            tracing::info!(event = ?ae, "received activity event");
+        }
+    });
 
     let rp = ds::activity::ActivityBuilder::default()
         .details("Fruit Tarts".to_owned())
@@ -18,14 +24,20 @@ async fn main() -> Result<(), anyhow::Error> {
                 .small("the".to_owned(), Some("i mage".to_owned())),
         );
 
-    tracing::info!("updated activity: {:?}", client.update_activity(rp).await);
+    tracing::info!(
+        "updated activity: {:?}",
+        client.discord.update_activity(rp).await
+    );
 
     let mut r = String::new();
     let _ = std::io::stdin().read_line(&mut r);
 
-    tracing::info!("cleared activity: {:?}", client.clear_activity().await);
+    tracing::info!(
+        "cleared activity: {:?}",
+        client.discord.clear_activity().await
+    );
 
-    client.disconnect().await;
+    client.discord.disconnect().await;
 
     Ok(())
 }

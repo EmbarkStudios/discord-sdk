@@ -27,14 +27,14 @@ pub(crate) struct ErrorPayloadStack<'stack> {
     pub(crate) message: Option<std::borrow::Cow<'stack, str>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Environment {
     Production,
     Other(String),
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct DiscordConfig {
     /// The CDN host that can be used to retrieve user avatars
     pub cdn_host: String,

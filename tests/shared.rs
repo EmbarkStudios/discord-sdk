@@ -3,8 +3,10 @@
 pub use discord_sdk as ds;
 pub use tokio::sync::mpsc;
 
-/// Application ID for the "game" in this case, "Andy's test app" which is the
-/// same application used in the Discord Game SDK's own examples
+pub use ds::DiscordMsg as Msg;
+
+/// Application identifier for "Andy's Test App" used in the Discord SDK's
+/// examples.
 pub const APP_ID: ds::AppId = 310270644849737729;
 
 pub fn init_logger() {
@@ -15,43 +17,24 @@ pub fn init_logger() {
         .try_init();
 }
 
-#[derive(Debug)]
-pub enum Msg {
-    Event(ds::Event),
-    Error(ds::Error),
-}
-
 pub struct Client {
     pub discord: ds::Discord,
     pub user: ds::user::User,
     pub events: mpsc::UnboundedReceiver<Msg>,
 }
 
-struct Forward(mpsc::UnboundedSender<Msg>);
-
-#[async_trait::async_trait]
-impl ds::DiscordHandler for Forward {
-    async fn on_event(&self, event: ds::Event) {
-        let _ = self.0.send(Msg::Event(event));
-    }
-
-    async fn on_error(&self, error: ds::Error) {
-        let _ = self.0.send(Msg::Error(error));
-    }
-}
-
 pub async fn make_client(subs: ds::Subscriptions) -> Result<Client, ds::Error> {
-    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    let (forwarder, mut events) = ds::handlers::Forwarder::new();
 
-    let discord = ds::Discord::new(ds::DiscordApp::PlainId(APP_ID), subs, Box::new(Forward(tx)))?;
+    let discord = ds::Discord::new(ds::DiscordApp::PlainId(APP_ID), subs, Box::new(forwarder))?;
 
     tracing::info!("waiting for handshake...");
     let user = tokio::time::timeout(std::time::Duration::from_secs(5), async {
         loop {
-            match rx.recv().await {
+            match events.recv().await {
                 Some(msg) => {
-                    if let Msg::Event(ds::Event::Ready { user, .. }) = msg {
-                        break user;
+                    if let Msg::Event(ds::Event::Ready(ready)) = msg {
+                        break ready.user;
                     }
                 }
                 None => panic!("discord closed"),
@@ -63,7 +46,7 @@ pub async fn make_client(subs: ds::Subscriptions) -> Result<Client, ds::Error> {
     Ok(Client {
         discord,
         user,
-        events: rx,
+        events,
     })
 }
 

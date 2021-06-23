@@ -16,7 +16,7 @@ async fn test_activity() {
     let mut events = one.events;
     tokio::task::spawn(async move {
         while let Some(event) = events.recv().await {
-            tracing::info!(which = 1, event = ?event);
+            tracing::debug!(which = 1, event = ?event);
         }
     });
 
@@ -28,7 +28,7 @@ async fn test_activity() {
         let mut invite_tx = Some(invite_tx);
         let mut join_tx = Some(join_tx);
         while let Some(event) = events.recv().await {
-            tracing::info!(which = 2, event = ?event);
+            tracing::debug!(which = 2, event = ?event);
 
             match event {
                 shared::Msg::Event(ds::Event::ActivityInvite(invite)) => {
@@ -36,7 +36,7 @@ async fn test_activity() {
                         tx.send(invite).unwrap();
                     }
                 }
-                shared::Msg::Event(ds::Event::ActivityJoin { secret }) => {
+                shared::Msg::Event(ds::Event::ActivityJoin(secret)) => {
                     if let Some(tx) = join_tx.take() {
                         tx.send(secret).unwrap();
                     }
@@ -103,7 +103,7 @@ async fn test_activity() {
         .expect("timed out waiting for join")
         .expect("event task dropped");
 
-    assert_eq!(secret, "muchsecretverysecurity",);
+    assert_eq!(secret.secret, "muchsecretverysecurity",);
 
     one.disconnect().await;
     two.disconnect().await;

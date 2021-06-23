@@ -2,7 +2,7 @@ mod shared;
 
 #[cfg(feature = "local-testing")]
 #[tokio::test]
-async fn test_local_lobbies() {
+async fn test_lobbies() {
     use shared::ds::{self, lobby};
 
     shared::init_logger();
@@ -16,14 +16,14 @@ async fn test_local_lobbies() {
     let mut events = one.events;
     tokio::task::spawn(async move {
         while let Some(event) = events.recv().await {
-            tracing::info!(which = 1, event = ?event);
+            tracing::debug!(which = 1, event = ?event);
         }
     });
 
     let mut events = two.events;
     tokio::task::spawn(async move {
         while let Some(event) = events.recv().await {
-            tracing::info!(which = 2, event = ?event);
+            tracing::debug!(which = 2, event = ?event);
         }
     });
 
@@ -34,7 +34,7 @@ async fn test_local_lobbies() {
     let two = two.discord;
 
     tracing::info!("1 => creating lobby");
-    let lobby = one
+    let mut lobby = one
         .create_lobby(
             lobby::CreateLobbyBuilder::new()
                 .capacity(std::num::NonZeroU32::new(2))
@@ -90,13 +90,13 @@ async fn test_local_lobbies() {
         .await
         .is_ok());
 
-    let lobby_update = one
-        .get_lobby_update(lobby.id)
-        .expect("failed to get lobby update")
-        .owner(Some(two_user.id));
-
     tracing::info!("1 => changing lobby ownership");
-    assert!(one.update_lobby(lobby_update).await.is_ok());
+    let update = one
+        .update_lobby(lobby::UpdateLobbyBuilder::new(&lobby).owner(Some(two_user.id)))
+        .await
+        .unwrap();
+
+    update.modify(&mut lobby);
 
     let lobby_id = lobby.id;
 
