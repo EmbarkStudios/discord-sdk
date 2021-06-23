@@ -80,9 +80,20 @@ pub(crate) fn handler_task(
                     user_send!(DiscordMsg::Event(event));
                 }
                 Msg::Command { command, kind } => {
-                    if kind == CommandKind::Subscribe {
-                        tracing::debug!("subscription succeeded: {:#?}", command.inner);
-                        continue;
+                    use crate::proto::Command;
+                    // Some commands can also be turned into events for consistency
+                    match &command.inner {
+                        Command::Subscribe { evt } => {
+                            tracing::debug!(event = ?evt, "subscription succeeded");
+                            continue;
+                        }
+                        Command::CreateLobby(lobby) => {
+                            user_send!(DiscordMsg::Event(Event::LobbyCreate(lobby.clone())));
+                        }
+                        Command::ConnectToLobby(lobby) => {
+                            user_send!(DiscordMsg::Event(Event::LobbyConnect(lobby.clone())));
+                        }
+                        _ => {}
                     }
 
                     match pop_nonce(command.nonce) {
