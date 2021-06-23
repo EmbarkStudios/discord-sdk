@@ -113,7 +113,7 @@ pub(crate) struct IoTask {
 }
 
 pub(crate) enum IoMsg {
-    Disconnected { reason: String },
+    Disconnected(Error),
     Frame(Vec<u8>),
 }
 
@@ -424,18 +424,18 @@ pub(crate) fn start_io_task(app_id: i64) -> IoTask {
                     reconnect_dur = std::time::Duration::from_millis(500);
                     match io_loop(stream, app_id, &io_stx, &srx, &rtx).await {
                         Err(e) => {
-                            let reason = format!("{}", e);
-                            tracing::debug!("{}", reason);
+                            tracing::debug!("I/O loop failed: {:#}", e);
 
-                            if rtx.try_send(IoMsg::Disconnected { reason }).is_err() {
-                                tracing::error!("Dropped disconnect message as queue is too full");
-                            }
-
-                            if let Error::Close(_reason) = e {
+                            if let Error::Close(e) = &e {
                                 tracing::warn!(
+                                    reason = %e,
                                     "Shutting down I/O loop due to Discord close request"
                                 );
                                 return;
+                            }
+
+                            if rtx.try_send(IoMsg::Disconnected(e)).is_err() {
+                                tracing::error!("Dropped disconnect message as queue is too full");
                             }
 
                             // Drain the send queue so we don't confuse Discord
