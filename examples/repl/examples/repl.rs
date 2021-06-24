@@ -1,11 +1,11 @@
-use anyhow::Context as _;
-use discord_sdk as ds;
+use examples_shared::{
+    self as es,
+    anyhow::{self, Context as _},
+    ds, tokio, tracing,
+};
 use structopt::StructOpt;
 
 use ds::{activity, lobby, overlay};
-
-#[path = "shared._rs"]
-mod shared;
 
 #[derive(StructOpt, Debug)]
 enum LobbyCmd {
@@ -103,7 +103,7 @@ enum Cmd {
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    let client = shared::make_client(ds::Subscriptions::ALL).await;
+    let client = es::make_client(ds::Subscriptions::ALL).await;
 
     //let user = client.user;
     let wheel = client.wheel;

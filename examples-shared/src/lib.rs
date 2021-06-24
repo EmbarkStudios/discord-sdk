@@ -1,4 +1,7 @@
+pub use anyhow;
 pub use discord_sdk as ds;
+pub use tokio;
+pub use tracing;
 
 /// Application identifier for "Andy's Test App" used in the Discord SDK's
 /// examples.

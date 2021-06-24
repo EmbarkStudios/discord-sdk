@@ -1,0 +1,9 @@
+[package]
+name = "example-repl"
+version = "0.1.0"
+edition = "2018"
+publish = false
+
+[dev-dependencies]
+examples-shared = { path = "../../examples-shared" }
+structopt = "0.3"

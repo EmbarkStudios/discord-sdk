@@ -1,13 +1,9 @@
-use discord_sdk as ds;
-
-#[path = "shared._rs"]
-mod shared;
-
 use ds::lobby::{self, search};
+use examples_shared::{self as es, anyhow, ds, tokio, tracing};
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    let client = shared::make_client(ds::Subscriptions::LOBBY).await;
+    let client = es::make_client(ds::Subscriptions::LOBBY).await;
 
     let mut lobby_events = client.wheel.lobby();
 

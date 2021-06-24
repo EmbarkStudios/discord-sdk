@@ -1,9 +1,6 @@
-#[path = "shared._rs"]
-mod shared;
-
-use discord_sdk as ds;
 use ds::overlay;
 use eframe::egui;
+use examples_shared::{self as es, ds, tokio, tracing};
 
 struct App {
     discord: ds::Discord,
@@ -82,7 +79,7 @@ fn main() {
         .build()
         .expect("failed to build tokio runtime");
 
-    let client = rt.block_on(async { shared::make_client(ds::Subscriptions::OVERLAY).await });
+    let client = rt.block_on(async { es::make_client(ds::Subscriptions::OVERLAY).await });
 
     let handle = rt.handle().clone();
 
@@ -105,8 +102,11 @@ fn main() {
         handle,
     };
 
-    eframe::run_native(Box::new(app), eframe::NativeOptions {
-        transparent: true,
-        ..Default::default()
-    });
+    eframe::run_native(
+        Box::new(app),
+        eframe::NativeOptions {
+            transparent: true,
+            ..Default::default()
+        },
+    );
 }

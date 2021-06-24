@@ -1,11 +1,8 @@
-use discord_sdk as ds;
-
-#[path = "shared._rs"]
-mod shared;
+use examples_shared::{self as es, anyhow, ds, tokio, tracing};
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    let client = shared::make_client(ds::Subscriptions::ACTIVITY).await;
+    let client = es::make_client(ds::Subscriptions::ACTIVITY).await;
 
     let mut activity_events = client.wheel.activity();
 

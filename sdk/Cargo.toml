@@ -1,0 +1,41 @@
+[package]
+name = "discord-sdk"
+version = "0.0.1"
+authors = ["Embark <opensource@embark-studios.com>", "Jake Shadle <jake.shadle@embark-studios.com>"]
+edition = "2018"
+description = "An open implementation of the Discord Game SDK"
+license = "MIT OR Apache-2.0"
+documentation = "https://docs.rs/discord-sdk"
+homepage = "https://github.com/EmbarkStudios/discord-sdk"
+repository = "https://github.com/EmbarkStudios/discord-sdk"
+keywords = ["discord", "games"]
+readme = "README.md"
+
+[features]
+# Enables tests that require 2 running Discord applications (stable, canary, or PTB)
+# with a logged in user, see https://discord.com/developers/docs/game-sdk/sdk-starter-guide#testing-locally-with-two-clients
+local-testing = []
+
+[dependencies]
+anyhow = "1.0"
+app_dirs2 = "2.3"
+async-trait = "0.1"
+base64 = "0.13"
+bitflags = "1.2"
+chrono = "0.4"
+crossbeam-channel = "0.5"
+num-traits = "0.2"
+parking_lot = "0.11"
+serde = { version = "1.0", features = ["derive", "rc"] }
+serde_json = "1.0"
+serde_repr = "0.1"
+thiserror = "1.0"
+tokio = { version = "=1.7.0", features = ["net", "rt-multi-thread", "sync", "time"] }
+tracing = "0.1"
+url = "2.2"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+winreg = "0.9"
+
+[dev-dependencies]
+tracing-subscriber = "0.2"

@@ -3,6 +3,7 @@ name = "sniff"
 version = "0.1.0"
 authors = ["Jake Shadle <jake.shadle@embark-studios.com>"]
 edition = "2018"
+publish = false
 
 [dependencies]
 discord_game_sdk = { git = "https://github.com/EmbarkStudios/discord_game_sdk", rev = "3ba5ef9" }
