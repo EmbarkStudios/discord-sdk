@@ -47,7 +47,7 @@ jobs:
       - name: cargo test build
         run: cargo build --tests --release
       - name: cargo test
-        run: cargo test --release
+        run: cargo test --release --manifest-path sdk/Cargo.toml
 
   deny-check:
     name: cargo-deny
