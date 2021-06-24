@@ -9,3 +9,6 @@ pre-release-replacements = [
   { file = "CHANGELOG.md", search = "<!-- next-header -->", replace = "<!-- next-header -->\n## [Unreleased] - ReleaseDate" },
   { file = "CHANGELOG.md", search = "<!-- next-url -->", replace = "<!-- next-url -->\n[Unreleased]: https://github.com/EmbarkStudios/discord-sdk/compare/{{tag_name}}...HEAD" },
 ]
+pre-release-hook = [
+  "copy.sh",
+]
