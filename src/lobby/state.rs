@@ -101,3 +101,9 @@ impl LobbyStates {
         }
     }
 }
+
+impl Default for LobbyStates {
+    fn default() -> Self {
+        Self::new()
+    }
+}

@@ -113,6 +113,18 @@ pub enum DiscordApp {
     PlainId(AppId),
 }
 
+impl From<AppId> for DiscordApp {
+    fn from(id: AppId) -> Self {
+        Self::PlainId(id)
+    }
+}
+
+impl From<registration::Application> for DiscordApp {
+    fn from(app: registration::Application) -> Self {
+        Self::Register(app)
+    }
+}
+
 bitflags::bitflags! {
     pub struct Subscriptions: u32 {
         const ACTIVITY = 0x1;
@@ -139,11 +151,11 @@ impl Discord {
     /// Creates a new Discord connection for the specified application, providing
     /// a [`DiscordHandler`] which can handle events as they arrive from Discord
     pub fn new(
-        app: DiscordApp,
+        app: impl Into<DiscordApp>,
         subscriptions: Subscriptions,
         handler: Box<dyn DiscordHandler>,
     ) -> Result<Self, Error> {
-        let app_id = match app {
+        let app_id = match app.into() {
             DiscordApp::PlainId(id) => id,
             DiscordApp::Register(inner) => {
                 let id = inner.id;

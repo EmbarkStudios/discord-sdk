@@ -36,6 +36,11 @@ impl eframe::epi::App for App {
 
                 if ui.checkbox(&mut overlay_visible, "Show Overlay").clicked() {
                     run_async!({
+                        let mut ow = self.overlay_state.clone();
+                        let handle = tokio::task::spawn(async move {
+                            ow.changed().await
+                        });
+
                         match self
                             .discord
                             .set_overlay_visibility(if overlay_visible {
@@ -46,13 +51,19 @@ impl eframe::epi::App for App {
                             .await
                         {
                             Ok(_) => {
-                                let _ = self.overlay_state.changed().await;
+                                tracing::info!(result = ?handle.await, "overlay visibility changed");
                             }
                             Err(e) => {
                                 tracing::error!(error = ?e, "failed to change overlay visibility");
                             }
                         }
                     });
+                }
+
+                if ui.button("Open Voice Settings").clicked() {
+                    run_async!({
+                        tracing::info!(result = ?self.discord.open_voice_settings().await, "open voice settings");
+                    })
                 }
             });
         });
@@ -94,5 +105,8 @@ fn main() {
         handle,
     };
 
-    eframe::run_native(Box::new(app), eframe::NativeOptions::default());
+    eframe::run_native(Box::new(app), eframe::NativeOptions {
+        transparent: true,
+        ..Default::default()
+    });
 }
