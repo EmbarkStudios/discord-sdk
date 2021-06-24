@@ -40,7 +40,7 @@ pub async fn make_client(subs: ds::Subscriptions) -> Client {
 
     Client {
         discord,
-        wheel,
         user,
+        wheel,
     }
 }

@@ -44,25 +44,6 @@ struct ActivityUpdateCmd {
     details: String,
 }
 
-impl<'a> Into<ds::activity::ActivityBuilder> for &'a ActivityUpdateCmd {
-    fn into(self) -> activity::ActivityBuilder {
-        activity::ActivityBuilder::new()
-            .state(&self.state)
-            .details(&self.details)
-            .party(
-                format!("repl-{}", std::process::id()),
-                std::num::NonZeroU32::new(1),
-                std::num::NonZeroU32::new(2),
-                activity::PartyPrivacy::Private,
-            )
-            .secrets(ds::activity::Secrets {
-                join: Some("joinme".to_owned()),
-                spectate: Some("spectateme".to_owned()),
-                r#match: None,
-            })
-    }
-}
-
 #[derive(StructOpt, Debug)]
 enum ActivityCmd {
     Invite {
@@ -115,13 +96,10 @@ async fn main() -> Result<(), anyhow::Error> {
     tokio::task::spawn(async move {
         use activity::events::ActivityEvent;
         while let Ok(ae) = activity_events.recv().await {
-            match ae {
-                ActivityEvent::Invite(invite) => {
-                    if invites_tx.send(invite).is_err() {
-                        break;
-                    }
+            if let ActivityEvent::Invite(invite) = ae {
+                if invites_tx.send(invite).is_err() {
+                    break;
                 }
-                _ => {}
             }
         }
     });
@@ -260,7 +238,21 @@ async fn main() -> Result<(), anyhow::Error> {
                                     .await?;
                             }
                             ActivityCmd::Update(update) => {
-                                let ab: activity::ActivityBuilder = update.into();
+                                let ab = activity::ActivityBuilder::new()
+                                    .state(&update.state)
+                                    .details(&update.details)
+                                    .party(
+                                        format!("repl-{}", std::process::id()),
+                                        std::num::NonZeroU32::new(1),
+                                        std::num::NonZeroU32::new(2),
+                                        activity::PartyPrivacy::Private,
+                                    )
+                                    .secrets(ds::activity::Secrets {
+                                        join: Some("joinme".to_owned()),
+                                        spectate: Some("spectateme".to_owned()),
+                                        r#match: None,
+                                    });
+
                                 discord.update_activity(ab).await?;
                             }
                         },
