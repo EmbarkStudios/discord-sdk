@@ -1,8 +1,12 @@
 [package]
-name = "activity-example"
+name = "example-activity"
 version = "0.1.0"
 edition = "2018"
 publish = false
+
+[lib]
+test = false
+doctest = false
 
 [dev-dependencies]
 examples-shared = { path = "../../examples-shared" }

@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2018"
 publish = false
 
+[lib]
+test = false
+doctest = false
+
 [dependencies]
 anyhow = "1.0"
 discord-sdk = { path = "../sdk" }
