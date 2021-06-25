@@ -47,7 +47,7 @@ jobs:
       - name: cargo test build
         run: cargo build --tests --release
       - name: cargo test
-        run: cargo test --release
+        run: cargo test --release --manifest-path sdk/Cargo.toml
 
   deny-check:
     name: cargo-deny
@@ -67,4 +67,4 @@ jobs:
           override: true
       - run: cargo fetch
       - name: cargo publish check
-        run: cargo publish --dry-run
+        run: cargo publish --dry-run --manifest-path sdk/Cargo.toml

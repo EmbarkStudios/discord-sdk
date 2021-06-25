@@ -1,0 +1,16 @@
+[package]
+name = "examples-shared"
+version = "0.1.0"
+edition = "2018"
+publish = false
+
+[lib]
+test = false
+doctest = false
+
+[dependencies]
+anyhow = "1.0"
+discord-sdk = { path = "../sdk" }
+tokio = { version = "=1.7.0", features = ["macros"] }
+tracing = "0.1"
+tracing-subscriber = "0.2"
