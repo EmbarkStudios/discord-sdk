@@ -44,18 +44,22 @@ impl Wheel {
         )
     }
 
+    #[inline]
     pub fn lobby(&self) -> LobbySpoke {
         LobbySpoke(self.lobby.subscribe())
     }
 
+    #[inline]
     pub fn activity(&self) -> ActivitySpoke {
         ActivitySpoke(self.activity.subscribe())
     }
 
+    #[inline]
     pub fn overlay(&self) -> OverlaySpoke {
         OverlaySpoke(self.overlay.clone())
     }
 
+    #[inline]
     pub fn user(&self) -> UserSpoke {
         UserSpoke(self.user.clone())
     }
