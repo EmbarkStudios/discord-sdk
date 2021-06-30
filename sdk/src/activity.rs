@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 /// provide much on top of this
 ///
 /// [API docs](https://discord.com/developers/docs/game-sdk/activities#data-models-activityparty-struct)
-#[derive(Default, Debug, Serialize, Deserialize)]
+#[derive(Default, Clone, Debug, Serialize, Deserialize)]
 pub struct Party {
     /// A unique identifier for this party
     pub id: String,
@@ -51,7 +51,7 @@ impl<Tz: chrono::TimeZone> IntoTimestamp for chrono::DateTime<Tz> {
 /// developer settings.
 ///
 /// [Tips](https://discord.com/developers/docs/rich-presence/best-practices#have-interesting-expressive-art)
-#[derive(Default, Debug, Serialize, Deserialize)]
+#[derive(Default, Clone, Debug, Serialize, Deserialize)]
 pub struct Assets {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub large_image: Option<String>,
@@ -102,7 +102,7 @@ impl Assets {
 /// The start and end timestamp of the activity. These are unix timestamps.
 ///
 /// [API docs](https://discord.com/developers/docs/game-sdk/activities#data-models-activitytimestamps-struct)
-#[derive(Default, Debug, Serialize, Deserialize)]
+#[derive(Default, Clone, Debug, Serialize, Deserialize)]
 pub struct Timestamps {
     pub start: i64,
     pub end: i64,
@@ -175,7 +175,7 @@ pub enum JoinRequestReply {
     Ignore = 2,
 }
 
-#[derive(Default, Debug, Deserialize, Serialize)]
+#[derive(Default, Clone, Debug, Deserialize, Serialize)]
 pub struct Activity {
     /// The player's current party status
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -228,7 +228,7 @@ pub struct SetActivity {
 }
 
 /// Secret passwords for joining and spectating the player's game
-#[derive(Default, Debug, Serialize, Deserialize)]
+#[derive(Default, Clone, Debug, Serialize, Deserialize)]
 pub struct Secrets {
     /// Unique hash for the given match context
     #[serde(skip_serializing_if = "Option::is_none")]

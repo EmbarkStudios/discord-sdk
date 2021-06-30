@@ -20,6 +20,8 @@ pub struct User {
     pub discriminator: Option<u32>,
     /// The MD5 hash of the user's avatar
     pub avatar: Option<[u8; 16]>,
+    /// Whether the user belongs to an OAuth2 application
+    pub is_bot: bool,
 }
 
 impl fmt::Debug for User {
@@ -61,6 +63,8 @@ struct DeUser<'u> {
     discriminator: Option<&'u str>,
     /// A hex-encoded MD5 hash of the user's avatar
     avatar: Option<&'u str>,
+    /// Whether the user belongs to an OAuth2 application
+    bot: bool,
 }
 
 pub(crate) fn de_user<'de, D>(d: D) -> Result<User, D::Error>
@@ -141,6 +145,7 @@ impl<'de> TryFrom<DeUser<'de>> for User {
             username,
             discriminator,
             avatar,
+            is_bot: u.bot,
         })
     }
 }

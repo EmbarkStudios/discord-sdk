@@ -317,9 +317,19 @@ fn subscribe_task(subs: crate::Subscriptions, stx: cc::Sender<Option<Vec<u8>>>) 
             [].iter()
         };
 
-        activity.chain(lobby).chain(user).for_each(|kind| {
-            push(*kind);
-        });
+        let relations = if subs.contains(crate::Subscriptions::RELATIONSHIPS) {
+            [EventKind::RelationshipUpdate].iter()
+        } else {
+            [].iter()
+        };
+
+        activity
+            .chain(lobby)
+            .chain(user)
+            .chain(relations)
+            .for_each(|kind| {
+                push(*kind);
+            });
 
         // Unlike EVERY other event, subscribing to OVERLAY_UPDATE requires
         // an argument... :facepalm:

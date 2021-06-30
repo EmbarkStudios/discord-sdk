@@ -54,6 +54,9 @@ pub enum CommandKind {
     OpenOverlayGuildInvite,
     /// RPC sent to open the voice settings for the application
     OpenOverlayVoiceSettings,
+
+    /// RPC sent to retrieve the full list of a user's active relationships
+    GetRelationships,
 }
 
 /// The response to an RPC sent by us.
@@ -84,6 +87,10 @@ pub(crate) enum Command {
     OpenOverlayActivityInvite,
     OpenOverlayGuildInvite,
     OpenOverlayVoiceSettings,
+
+    GetRelationships {
+        relationships: Vec<crate::relations::Relationship>,
+    },
 }
 
 /// An RPC sent from Discord as JSON, in response to an RPC sent by us.
