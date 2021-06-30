@@ -42,10 +42,16 @@ enum OverlayCmd {
 }
 
 #[derive(StructOpt)]
+enum RelationCmd {
+    List,
+}
+
+#[derive(StructOpt)]
 enum Cmd {
     Lobby(LobbyCmd),
     Activity(ActivityCmd),
     Overlay(OverlayCmd),
+    Relations(RelationCmd),
 }
 
 fn main() {
@@ -83,6 +89,23 @@ fn main() {
 
             match Cmd::from_iter_safe(std::iter::once("discord").chain(line.split(' '))) {
                 Ok(cmd) => match cmd {
+                    Cmd::Relations(rc) => {
+                        match rc {
+                            RelationCmd::List => {
+                                //let ttx = tx.clone();
+                                match discord.iter_relationships() {
+                                    Err(e) => eprintln!("{:#}", e),
+                                    Ok(iter) => {
+                                        for (i, rel) in iter.enumerate() {
+                                            println!("{} {:#?}", i, rel);
+                                        }
+                                    }
+                                }
+
+                                //wait!();
+                            }
+                        }
+                    }
                     Cmd::Overlay(overlay) => match overlay {
                         OverlayCmd::Enabled => {
                             //let ttx = tx.clone();
@@ -590,5 +613,17 @@ impl dgs::EventHandler for Printer {
 
     fn on_current_user_update(&mut self, discord: &Discord<Self>) {
         println!("USER UPDATED",);
+    }
+
+    fn on_relationship_update(
+        &mut self,
+        discord: &Discord<'_, Self>,
+        relationship: &dgs::Relationship,
+    ) {
+        println!("RELATIONSHIP UPDATE: {:#?}", relationship);
+    }
+
+    fn on_relationships_refresh(&mut self, discord: &Discord<'_, Self>) {
+        println!("RELATIONSHIP REFRESHED");
     }
 }
