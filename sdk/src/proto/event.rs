@@ -129,7 +129,7 @@ pub enum Event {
     /// Event fired when a relationship with another user changes.
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/relationships#onrelationshipupdate)
-    RelationshipUpdate(crate::relations::Relationship),
+    RelationshipUpdate(std::sync::Arc<crate::relations::Relationship>),
 }
 
 /// An event sent from Discord as JSON.

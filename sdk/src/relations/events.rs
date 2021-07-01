@@ -2,5 +2,5 @@ use super::*;
 
 #[derive(Debug, Clone)]
 pub enum RelationshipEvent {
-    Update(Relationship),
+    Update(std::sync::Arc<Relationship>),
 }

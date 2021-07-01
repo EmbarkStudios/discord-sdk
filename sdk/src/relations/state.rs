@@ -3,13 +3,13 @@ use parking_lot::RwLock;
 
 #[derive(Debug)]
 pub struct Relationships {
-    pub relationships: RwLock<Vec<Relationship>>,
+    pub relationships: RwLock<Vec<std::sync::Arc<Relationship>>>,
 }
 
 impl Relationships {
     pub fn new(relations: Vec<Relationship>) -> Self {
         Self {
-            relationships: RwLock::new(relations),
+            relationships: RwLock::new(relations.into_iter().map(std::sync::Arc::new).collect()),
         }
     }
 
