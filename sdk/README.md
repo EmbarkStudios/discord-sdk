@@ -101,7 +101,15 @@ Also note, the SDK itself and its documentation uses the utterly confusing termi
 
 - [x] [Overlay Update](https://discord.com/developers/docs/game-sdk/overlay#ontoggle)
 
-### TODO: [Relationships](https://discord.com/developers/docs/game-sdk/relationships)
+### [Relationships](https://discord.com/developers/docs/game-sdk/relationships)
+
+#### Commands
+
+- [x] [Get Relationships](https://discord.com/developers/docs/game-sdk/relationships#first-notes) - **NOTE**: This command is not really exposed directly from the regular Game SDK, but is implicitly executed by the SDK during intialization.
+
+#### Events
+
+- [x] [Relationship Update](https://discord.com/developers/docs/game-sdk/relationships#onrelationshipupdate)
 
 ### TODO: [Storage](https://discord.com/developers/docs/game-sdk/storage)
 

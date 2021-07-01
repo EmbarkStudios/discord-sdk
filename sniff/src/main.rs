@@ -1,4 +1,4 @@
-use std::{ops::Deref, thread::current};
+use std::ops::Deref;
 
 use dgs::Discord;
 use discord_game_sdk as dgs;
@@ -42,10 +42,16 @@ enum OverlayCmd {
 }
 
 #[derive(StructOpt)]
+enum RelationCmd {
+    List,
+}
+
+#[derive(StructOpt)]
 enum Cmd {
     Lobby(LobbyCmd),
     Activity(ActivityCmd),
     Overlay(OverlayCmd),
+    Relations(RelationCmd),
 }
 
 fn main() {
@@ -57,7 +63,7 @@ fn main() {
     macro_rules! wait {
         () => {
             loop {
-                discord.run_callbacks();
+                discord.run_callbacks().unwrap();
                 if rx.try_recv().is_ok() {
                     break;
                 }
@@ -66,12 +72,12 @@ fn main() {
     }
 
     let mut line = String::new();
-    let mut current_lobby = std::sync::Arc::new(std::sync::Mutex::new(None));
+    let current_lobby = std::sync::Arc::new(std::sync::Mutex::new(None));
 
     let mut update_count = 0;
 
     loop {
-        discord.run_callbacks();
+        discord.run_callbacks().unwrap();
         line.clear();
 
         if std::io::stdin().read_line(&mut line).is_ok() {
@@ -83,6 +89,23 @@ fn main() {
 
             match Cmd::from_iter_safe(std::iter::once("discord").chain(line.split(' '))) {
                 Ok(cmd) => match cmd {
+                    Cmd::Relations(rc) => {
+                        match rc {
+                            RelationCmd::List => {
+                                //let ttx = tx.clone();
+                                match discord.iter_relationships() {
+                                    Err(e) => eprintln!("{:#}", e),
+                                    Ok(iter) => {
+                                        for (i, rel) in iter.enumerate() {
+                                            println!("{} {:#?}", i, rel);
+                                        }
+                                    }
+                                }
+
+                                //wait!();
+                            }
+                        }
+                    }
                     Cmd::Overlay(overlay) => match overlay {
                         OverlayCmd::Enabled => {
                             //let ttx = tx.clone();
@@ -93,8 +116,8 @@ fn main() {
                         OverlayCmd::Open => {
                             let ttx = tx.clone();
                             discord.set_overlay_opened(true, move |_, res| {
-                                dbg!(res);
-                                ttx.send(());
+                                dbg!(res).unwrap();
+                                ttx.send(()).unwrap();
                             });
 
                             wait!();
@@ -102,8 +125,8 @@ fn main() {
                         OverlayCmd::Close => {
                             let ttx = tx.clone();
                             discord.set_overlay_opened(false, move |_, res| {
-                                dbg!(res);
-                                ttx.send(());
+                                dbg!(res).unwrap();
+                                ttx.send(()).unwrap();
                             });
 
                             wait!();
@@ -117,8 +140,8 @@ fn main() {
                                     dgs::Action::Spectate
                                 },
                                 move |_, res| {
-                                    dbg!(res);
-                                    ttx.send(());
+                                    dbg!(res).unwrap();
+                                    ttx.send(()).unwrap();
                                 },
                             );
 
@@ -127,8 +150,8 @@ fn main() {
                         OverlayCmd::Voice => {
                             let ttx = tx.clone();
                             discord.open_voice_settings(move |_, res| {
-                                dbg!(res);
-                                ttx.send(());
+                                dbg!(res).unwrap();
+                                ttx.send(()).unwrap();
                             });
 
                             wait!();
@@ -136,8 +159,8 @@ fn main() {
                         OverlayCmd::GuildInvite { code } => {
                             let ttx = tx.clone();
                             discord.open_guild_invite_overlay(code, move |_, res| {
-                                dbg!(res);
-                                ttx.send(());
+                                dbg!(res).unwrap();
+                                ttx.send(()).unwrap();
                             });
 
                             wait!();
@@ -157,8 +180,9 @@ fn main() {
                                 .with_instance(true);
 
                             let ttx = tx.clone();
-                            discord.update_activity(&activity, move |dis, res| {
-                                dbg!(res);
+                            discord.update_activity(&activity, move |_dis, res| {
+                                dbg!(res).unwrap();
+                                ttx.send(()).unwrap();
                             });
 
                             wait!();
@@ -179,16 +203,16 @@ fn main() {
 
                             let ttx = tx.clone();
                             discord.update_activity(&activity, move |dis, res| {
-                                dbg!(res);
+                                dbg!(res).unwrap();
 
                                 dis.send_invite(
                                     user_id,
                                     dgs::Action::Join,
                                     "joinsie woinsie my funsie onesie",
-                                    move |dis, res| {
-                                        dbg!(res);
+                                    move |_dis, res| {
+                                        dbg!(res).unwrap();
 
-                                        ttx.send(());
+                                        ttx.send(()).unwrap();
                                     },
                                 );
                             });
@@ -198,8 +222,8 @@ fn main() {
                         ActivityCmd::Accept => {
                             let ttx = tx.clone();
                             discord.accept_invite(682969165652689005, move |_, res| {
-                                dbg!(res);
-                                ttx.send(());
+                                dbg!(res).unwrap();
+                                ttx.send(()).unwrap();
                             });
 
                             wait!();
@@ -212,7 +236,7 @@ fn main() {
 
                                 if let Some(cl) = lock.deref() {
                                     let current_lobby = current_lobby.clone();
-                                    discord.delete_lobby(*cl, move |discord, res| match res {
+                                    discord.delete_lobby(*cl, move |_discord, res| match res {
                                         Ok(_) => {
                                             println!(
                                                 "DELETED LOBBY {:?}",
@@ -232,7 +256,7 @@ fn main() {
                             }
                             //lobby_transaction.kind(dgs::LobbyKind::Private);
                             let current_lobby = current_lobby.clone();
-                            discord.create_lobby(&lobby_transaction, move |discord, lobby| {
+                            discord.create_lobby(&lobby_transaction, move |_discord, lobby| {
                                 match lobby {
                                     Ok(lobby) => {
                                         *current_lobby.lock().unwrap() = Some(lobby.id());
@@ -244,7 +268,7 @@ fn main() {
                         }
                         LobbyCmd::Update { capacity } => {
                             let lobby_id = {
-                                let mut lock = current_lobby.lock().unwrap();
+                                let lock = current_lobby.lock().unwrap();
 
                                 match lock.deref() {
                                     Some(id) => *id,
@@ -271,7 +295,7 @@ fn main() {
                             discord.update_lobby(
                                 lobby_id,
                                 &lobby_transaction,
-                                move |discord, lobby| match lobby {
+                                move |_discord, lobby| match lobby {
                                     Ok(lobby) => {
                                         println!("LOBBY UPDATED: {:#?}", lobby);
                                     }
@@ -285,7 +309,7 @@ fn main() {
                             if let Some(cl) = lock.deref() {
                                 let current_lobby = current_lobby.clone();
 
-                                discord.delete_lobby(*cl, move |discord, res| match res {
+                                discord.delete_lobby(*cl, move |_discord, res| match res {
                                     Ok(_) => {
                                         println!(
                                             "DELETED LOBBY {:?}",
@@ -303,7 +327,7 @@ fn main() {
 
                             if let Some(cl) = lock.deref() {
                                 let current_lobby = current_lobby.clone();
-                                discord.disconnect_lobby(*cl, move |discord, res| match res {
+                                discord.disconnect_lobby(*cl, move |_discord, res| match res {
                                     Ok(_) => println!(
                                         "DISCONNECTED FROM LOBBY {:?}",
                                         current_lobby.lock().unwrap()
@@ -319,10 +343,10 @@ fn main() {
                             lobby_transaction.locked(false);
                             lobby_transaction.add_metadata("one".to_owned(), "1".to_owned());
 
-                            let mut lobby_secret = std::sync::Arc::new(std::sync::Mutex::new(None));
+                            let lobby_secret = std::sync::Arc::new(std::sync::Mutex::new(None));
 
                             let cl = current_lobby.clone();
-                            let ls = lobby_secret.clone();
+                            let ls = lobby_secret;
                             let ttx = tx.clone();
                             discord.create_lobby(&lobby_transaction, move |dis, res| {
                                 match res {
@@ -341,7 +365,7 @@ fn main() {
                                     }
                                 }
 
-                                ttx.send(());
+                                ttx.send(()).unwrap();
                             });
 
                             wait!();
@@ -365,7 +389,7 @@ fn main() {
                                     }
                                 }
 
-                                ttx.send(());
+                                ttx.send(()).unwrap();
                             });
 
                             //activity!("updated, searching");
@@ -394,11 +418,11 @@ fn main() {
 
                                 for i in 0..count {
                                     if let Ok(id) = discord.lobby_id_at(i) {
-                                        dbg!(discord.lobby(id));
+                                        dbg!(discord.lobby(id)).unwrap();
                                     }
                                 }
 
-                                ttx.send(());
+                                ttx.send(()).unwrap();
                             });
 
                             wait!();
@@ -443,8 +467,8 @@ fn main() {
                                 lobby_id,
                                 "a very good message",
                                 move |_, res| {
-                                    dbg!(res);
-                                    ttx.send(());
+                                    dbg!(res).unwrap();
+                                    ttx.send(()).unwrap();
                                 },
                             );
 
@@ -452,16 +476,16 @@ fn main() {
 
                             let ttx = tx.clone();
                             discord.connect_lobby_voice(lobby_id, move |_, res| {
-                                dbg!(res);
-                                ttx.send(());
+                                dbg!(res).unwrap();
+                                ttx.send(()).unwrap();
                             });
 
                             wait!();
 
                             let ttx = tx.clone();
                             discord.disconnect_lobby_voice(lobby_id, move |_, res| {
-                                dbg!(res);
-                                ttx.send(());
+                                dbg!(res).unwrap();
+                                ttx.send(()).unwrap();
                             });
 
                             wait!();
@@ -473,19 +497,19 @@ fn main() {
 
                             let ttx = tx.clone();
                             discord.update_member(lobby_id, user_id, &member_tx, move |_, res| {
-                                dbg!(res);
+                                dbg!(res).unwrap();
 
-                                ttx.send(());
+                                ttx.send(()).unwrap();
                             });
 
                             wait!();
 
                             //activity!("connected, deleting");
-                            let ttx = tx.clone();
+                            let ttx = tx;
                             discord.delete_lobby(lobby_id, move |_, res| {
                                 res.expect("failed to delete lobby");
 
-                                ttx.send(());
+                                ttx.send(()).unwrap();
                             });
 
                             wait!();
@@ -507,27 +531,27 @@ struct Printer;
 impl dgs::EventHandler for Printer {
     fn on_user_achievement_update(
         &mut self,
-        discord: &Discord<Self>,
+        _discord: &Discord<Self>,
         user_achievement: &dgs::UserAchievement,
     ) {
         println!("USER ACHIEVEMENT UPDATE: {:#?}", user_achievement);
     }
 
-    fn on_activity_join(&mut self, discord: &Discord<Self>, secret: &str) {
+    fn on_activity_join(&mut self, _discord: &Discord<Self>, secret: &str) {
         println!("ACTIVITY JOIN: {}", secret);
     }
 
-    fn on_activity_spectate(&mut self, discord: &Discord<Self>, secret: &str) {
+    fn on_activity_spectate(&mut self, _discord: &Discord<Self>, secret: &str) {
         println!("ACTIVITY SPECTATE: {}", secret);
     }
 
-    fn on_activity_join_request(&mut self, discord: &Discord<Self>, user: &dgs::User) {
+    fn on_activity_join_request(&mut self, _discord: &Discord<Self>, user: &dgs::User) {
         println!("ACTIVITY JOIN REQUEST: {:#?}", user);
     }
 
     fn on_activity_invite(
         &mut self,
-        discord: &Discord<Self>,
+        _discord: &Discord<Self>,
         kind: dgs::Action,
         user: &dgs::User,
         activity: &dgs::Activity,
@@ -538,17 +562,17 @@ impl dgs::EventHandler for Printer {
         );
     }
 
-    fn on_lobby_update(&mut self, discord: &Discord<Self>, lobby_id: dgs::LobbyID) {
+    fn on_lobby_update(&mut self, _discord: &Discord<Self>, lobby_id: dgs::LobbyID) {
         println!("LOBBY UPDATE: {}", lobby_id);
     }
 
-    fn on_lobby_delete(&mut self, discord: &Discord<Self>, lobby_id: dgs::LobbyID, reason: u32) {
+    fn on_lobby_delete(&mut self, _discord: &Discord<Self>, lobby_id: dgs::LobbyID, reason: u32) {
         println!("LOBBY DELETED: {} - {}", lobby_id, reason);
     }
 
     fn on_member_connect(
         &mut self,
-        discord: &Discord<Self>,
+        _discord: &Discord<Self>,
         lobby_id: dgs::LobbyID,
         member_id: dgs::UserID,
     ) {
@@ -557,7 +581,7 @@ impl dgs::EventHandler for Printer {
 
     fn on_member_update(
         &mut self,
-        discord: &Discord<Self>,
+        _discord: &Discord<Self>,
         lobby_id: dgs::LobbyID,
         member_id: dgs::UserID,
     ) {
@@ -566,7 +590,7 @@ impl dgs::EventHandler for Printer {
 
     fn on_member_disconnect(
         &mut self,
-        discord: &Discord<Self>,
+        _discord: &Discord<Self>,
         lobby_id: dgs::LobbyID,
         member_id: dgs::UserID,
     ) {
@@ -575,7 +599,7 @@ impl dgs::EventHandler for Printer {
 
     fn on_lobby_message(
         &mut self,
-        discord: &Discord<Self>,
+        _discord: &Discord<Self>,
         lobby_id: dgs::LobbyID,
         member_id: dgs::UserID,
         data: &[u8],
@@ -588,7 +612,19 @@ impl dgs::EventHandler for Printer {
         );
     }
 
-    fn on_current_user_update(&mut self, discord: &Discord<Self>) {
+    fn on_current_user_update(&mut self, _discord: &Discord<Self>) {
         println!("USER UPDATED",);
+    }
+
+    fn on_relationship_update(
+        &mut self,
+        _discord: &Discord<'_, Self>,
+        relationship: &dgs::Relationship,
+    ) {
+        println!("RELATIONSHIP UPDATE: {:#?}", relationship);
+    }
+
+    fn on_relationships_refresh(&mut self, _discord: &Discord<'_, Self>) {
+        println!("RELATIONSHIP REFRESHED");
     }
 }

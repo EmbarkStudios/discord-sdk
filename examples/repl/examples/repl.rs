@@ -5,7 +5,7 @@ use examples_shared::{
 };
 use structopt::StructOpt;
 
-use ds::{activity, lobby, overlay};
+use ds::{activity, lobby, overlay, relations};
 
 #[derive(StructOpt, Debug)]
 enum LobbyCmd {
@@ -75,10 +75,16 @@ enum OverlayCmd {
 }
 
 #[derive(StructOpt, Debug)]
+enum RelationsCmd {
+    Print,
+}
+
+#[derive(StructOpt, Debug)]
 enum Cmd {
     Lobby(LobbyCmd),
     Activity(ActivityCmd),
     Overlay(OverlayCmd),
+    Relations(RelationsCmd),
     Exit,
 }
 
@@ -114,16 +120,31 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     });
 
+    let relationships = discord.get_relationships().await?;
+
+    let mut rl_events = wheel.relationships().0;
+
+    let relationships = std::sync::Arc::new(relations::state::Relationships::new(relationships));
+    let rs = relationships.clone();
+    tokio::task::spawn(async move {
+        while let Ok(re) = rl_events.recv().await {
+            tracing::info!(event = ?re, "relationship event");
+            rs.on_event(re);
+        }
+    });
+
     struct ReplState {
         invites_rx: ds::cc::Receiver<activity::events::InviteEvent>,
         created_lobby: Option<lobby::Lobby>,
         lobbies: std::sync::Arc<lobby::state::LobbyStates>,
+        relationships: std::sync::Arc<relations::state::Relationships>,
     }
 
     let mut repl_state = ReplState {
         invites_rx,
         created_lobby: None,
         lobbies: lobby_states,
+        relationships,
     };
 
     let mut line = String::new();
@@ -284,6 +305,11 @@ async fn main() -> Result<(), anyhow::Error> {
                             }
                             OverlayCmd::GuildInvite { code } => {
                                 discord.open_guild_invite(code).await?;
+                            }
+                        },
+                        Cmd::Relations(rc) => match rc {
+                            RelationsCmd::Print => {
+                                tracing::info!("{:#?}", state.relationships.relationships.read());
                             }
                         },
                     }

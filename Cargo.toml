@@ -1,7 +1,12 @@
 [workspace]
 members = [
+    # The actual library crate
     "sdk",
 
+    # Helper program, not published
+    "sniff",
+
+    # Example related libraries, not published
     "examples-shared",
     "examples/*",
 ]

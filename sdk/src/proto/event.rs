@@ -2,6 +2,7 @@ use crate::{
     activity::events as activity_events,
     lobby::{events as lobby_events, Lobby, LobbyId},
     overlay::events as overlay_events,
+    relations::events as relation_events,
     types::ErrorPayload,
     user::events as user_events,
 };
@@ -31,6 +32,8 @@ pub(crate) enum EventKind {
     SpeakingStop,
 
     OverlayUpdate,
+
+    RelationshipUpdate,
 }
 
 /// An event sent from Discord to notify us of some kind of state change or
@@ -122,6 +125,11 @@ pub enum Event {
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/overlay#ontoggle)
     OverlayUpdate(overlay_events::UpdateEvent),
+
+    /// Event fired when a relationship with another user changes.
+    ///
+    /// [API docs](https://discord.com/developers/docs/game-sdk/relationships#onrelationshipupdate)
+    RelationshipUpdate(std::sync::Arc<crate::relations::Relationship>),
 }
 
 /// An event sent from Discord as JSON.
@@ -147,6 +155,7 @@ pub enum ClassifiedEvent {
     User(user_events::UserEvent),
     Activity(activity_events::ActivityEvent),
     Overlay(overlay_events::OverlayEvent),
+    Relations(relation_events::RelationshipEvent),
 }
 
 impl From<Event> for ClassifiedEvent {
@@ -184,6 +193,11 @@ impl From<Event> for ClassifiedEvent {
             // Overlay
             Event::OverlayUpdate(update) => {
                 Self::Overlay(overlay_events::OverlayEvent::Update(update))
+            }
+
+            // Relationships
+            Event::RelationshipUpdate(relationship) => {
+                Self::Relations(relation_events::RelationshipEvent::Update(relationship))
             }
 
             // Errors get converted before this path

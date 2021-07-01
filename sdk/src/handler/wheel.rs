@@ -4,6 +4,7 @@ use crate::{
     lobby::events::LobbyEvent,
     overlay::events::OverlayEvent,
     proto::event::ClassifiedEvent,
+    relations::events::RelationshipEvent,
     user::{events::UserEvent, User},
 };
 use tokio::sync::{broadcast, watch};
@@ -12,6 +13,8 @@ use tokio::sync::{broadcast, watch};
 pub struct Wheel {
     lobby: broadcast::Sender<LobbyEvent>,
     activity: broadcast::Sender<ActivityEvent>,
+    relations: broadcast::Sender<RelationshipEvent>,
+
     user: watch::Receiver<UserState>,
     overlay: watch::Receiver<OverlayState>,
 }
@@ -20,6 +23,8 @@ impl Wheel {
     pub fn new(error: Box<dyn OnError>) -> (Self, WheelHandler) {
         let (lobby_tx, _lobby_rx) = broadcast::channel(10);
         let (activity_tx, _activity_rx) = broadcast::channel(10);
+        let (rl_tx, _rl_rx) = broadcast::channel(10);
+
         let (user_tx, user_rx) =
             watch::channel(UserState::Disconnected(crate::Error::NoConnection));
         let (overlay_tx, overlay_rx) = watch::channel(OverlayState {
@@ -31,14 +36,16 @@ impl Wheel {
             Self {
                 lobby: lobby_tx.clone(),
                 activity: activity_tx.clone(),
+                relations: rl_tx.clone(),
                 user: user_rx,
                 overlay: overlay_rx,
             },
             WheelHandler {
-                user: user_tx,
-                overlay: overlay_tx,
                 lobby: lobby_tx,
                 activity: activity_tx,
+                relations: rl_tx,
+                user: user_tx,
+                overlay: overlay_tx,
                 error,
             },
         )
@@ -55,18 +62,24 @@ impl Wheel {
     }
 
     #[inline]
-    pub fn overlay(&self) -> OverlaySpoke {
-        OverlaySpoke(self.overlay.clone())
+    pub fn relationships(&self) -> RelationshipSpoke {
+        RelationshipSpoke(self.relations.subscribe())
     }
 
     #[inline]
     pub fn user(&self) -> UserSpoke {
         UserSpoke(self.user.clone())
     }
+
+    #[inline]
+    pub fn overlay(&self) -> OverlaySpoke {
+        OverlaySpoke(self.overlay.clone())
+    }
 }
 
 pub struct LobbySpoke(pub broadcast::Receiver<LobbyEvent>);
 pub struct ActivitySpoke(pub broadcast::Receiver<ActivityEvent>);
+pub struct RelationshipSpoke(pub broadcast::Receiver<RelationshipEvent>);
 pub struct UserSpoke(pub watch::Receiver<UserState>);
 pub struct OverlaySpoke(pub watch::Receiver<OverlayState>);
 
@@ -104,10 +117,13 @@ pub struct OverlayState {
 
 /// The write part of the [`Wheel`] which is used by the actual handler task
 pub struct WheelHandler {
-    user: watch::Sender<UserState>,
-    overlay: watch::Sender<OverlayState>,
     lobby: broadcast::Sender<LobbyEvent>,
     activity: broadcast::Sender<ActivityEvent>,
+    relations: broadcast::Sender<RelationshipEvent>,
+
+    user: watch::Sender<UserState>,
+    overlay: watch::Sender<OverlayState>,
+
     error: Box<dyn OnError>,
 }
 
@@ -131,6 +147,11 @@ impl super::DiscordHandler for WheelHandler {
 
                     if let Err(e) = self.user.send(us) {
                         tracing::warn!(error = %e, "User event was unobserved");
+                    }
+                }
+                ClassifiedEvent::Relations(re) => {
+                    if let Err(e) = self.relations.send(re) {
+                        tracing::warn!(event = ?e.0, "Relationship event was unobserved");
                     }
                 }
                 ClassifiedEvent::Activity(activity) => {
