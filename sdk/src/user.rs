@@ -64,7 +64,7 @@ struct DeUser<'u> {
     /// A hex-encoded MD5 hash of the user's avatar
     avatar: Option<&'u str>,
     /// Whether the user belongs to an OAuth2 application
-    bot: bool,
+    bot: Option<bool>,
 }
 
 pub(crate) fn de_user<'de, D>(d: D) -> Result<User, D::Error>
@@ -145,7 +145,7 @@ impl<'de> TryFrom<DeUser<'de>> for User {
             username,
             discriminator,
             avatar,
-            is_bot: u.bot,
+            is_bot: u.bot.unwrap_or(false),
         })
     }
 }
