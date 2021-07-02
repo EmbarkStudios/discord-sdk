@@ -34,6 +34,7 @@ enum LobbyCmd {
         msg: String,
     },
     Print,
+    Search,
 }
 
 #[derive(StructOpt, Debug)]
@@ -232,6 +233,12 @@ async fn main() -> Result<(), anyhow::Error> {
                                 discord
                                     .send_lobby_message(id, lobby::LobbyMessage::Text(msg.clone()))
                                     .await?;
+                            }
+                            LobbyCmd::Search => {
+                                let query = ds::lobby::search::SearchQuery::default();
+                                let lobbies = discord.search_lobbies(query).await?;
+
+                                tracing::info!("found lobbies: {:#?}", lobbies);
                             }
                             LobbyCmd::Print => {
                                 tracing::info!("{:#?}", state.lobbies.lobbies.read());
