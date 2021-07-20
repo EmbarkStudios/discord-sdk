@@ -10,9 +10,3 @@ members = [
     "examples-shared",
     "examples/*",
 ]
-
-[patch.crates-io]
-# Support for Windows named pipes. They were removed in tokio 1.0 and added
-# back in 1.7, however, the support was basic and made them too different from
-# the unix streams, so we use our fork to add ready and try_read/write.
-tokio = { git = "https://github.com/tokio-rs/tokio", rev = "959c5c9" }
