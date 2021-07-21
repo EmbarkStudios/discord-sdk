@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -ex
+set -e
 
 root=$(git rev-parse --show-toplevel)
 
@@ -11,5 +11,5 @@ cp "$root/sdk/README.md" "$root/sdk/CHANGELOG.md" "$root"
 
 git add .
 git commit --amend --no-edit
-git tag -fa "$tag"
-#git push
+git tag -fa -m "Release $tag" "$tag"
+git push --follow-tags
