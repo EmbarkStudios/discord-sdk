@@ -1,3 +1,6 @@
+//! Provides types and functionality for [Activities](https://discord.com/developers/docs/game-sdk/activities)
+//! , also known as Rich Presence
+
 pub mod events;
 
 use crate::{user::UserId, Command, CommandKind, Error};
@@ -127,7 +130,7 @@ impl Default for ActivityKind {
     }
 }
 
-/// The activity kinds you can invite a [`User`] to engage in.
+/// The activity kinds you can invite a [`User`](crate::user::User) to engage in.
 ///
 /// [API docs](https://discord.com/developers/docs/game-sdk/activities#data-models-activityactiontype-enum)
 #[derive(
@@ -159,20 +162,30 @@ pub struct ActivityInvite {
     pub message_id: crate::types::MessageId,
 }
 
-/// The reply to send to the [`User`] who sent a join request.
+/// The reply to send to the [`User`](crate::user::User) who sent a join request.
+/// Note that the actual values shown in the API docs are irrelevant as the reply
+/// on the wire is actually just a different command kind.
 ///
 /// [API docs](https://discord.com/developers/docs/game-sdk/activities#data-models-activityjoinrequestreply-enum)
-#[derive(
-    serde_repr::Serialize_repr, serde_repr::Deserialize_repr, PartialEq, Debug, Copy, Clone,
-)]
-#[repr(u8)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub enum JoinRequestReply {
     /// Rejects the join request
-    No = 0,
+    No,
     /// Accepts the join request
-    Yes = 1,
-    /// Ignores the join request
-    Ignore = 2,
+    Yes,
+    /// Ignores the join request. This is semantically no different from [`No`](Self::No),
+    /// at least in the current state of the Discord API
+    Ignore,
+}
+
+impl From<bool> for JoinRequestReply {
+    fn from(b: bool) -> Self {
+        if b {
+            Self::Yes
+        } else {
+            Self::No
+        }
+    }
 }
 
 #[derive(Default, Clone, Debug, Deserialize, Serialize)]
@@ -293,7 +306,7 @@ impl ActivityBuilder {
         self
     }
 
-    /// What the player is doing, eg. "Exploring the Wild of Outland".
+    /// What the player is doing, eg. "Exploring the Wilds of Outland".
     ///
     /// Limited to 128 bytes.
     pub fn details(mut self, details: impl Into<String>) -> Self {
@@ -459,7 +472,8 @@ impl ActivityBuilder {
 }
 
 impl crate::Discord {
-    /// Sets the current [`User]'s presence in Discord to a new activity.
+    /// Sets the current [`User's`](crate::user::User) presence in Discord to a
+    /// new activity.
     ///
     /// # Errors
     /// This has a rate limit of 5 updates per 20 seconds.
@@ -478,11 +492,12 @@ impl crate::Discord {
         })
     }
 
-    /// Invites the specified [`User`] to join the current [`User`]'s game.
+    /// Invites the specified [`User`](crate::user::User) to join the current
+    /// user's game.
     ///
     /// # Errors
-    /// The current [`User`] must have their presence updated with all of the
-    /// [required fields](https://discord.com/developers/docs/game-sdk/activities#activity-action-field-requirements)
+    /// The current [`User`](crate::user::User) must have their presence updated
+    /// with all of the [required fields](https://discord.com/developers/docs/game-sdk/activities#activity-action-field-requirements)
     /// otherwise this call will fail.
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/activities#sendinvite)
@@ -511,8 +526,6 @@ impl crate::Discord {
             },
         )?;
 
-        // TODO: Keep track of the last set activity and send it immediately if
-        // the connection to Discord is lost then reestablished?
         handle_response!(rx, Command::ActivityInviteUser => {
             Ok(())
         })
@@ -548,7 +561,7 @@ impl crate::Discord {
         })
     }
 
-    /// Clears the rich presence for the logged in [`User`].
+    /// Clears the rich presence for the logged in [`User`](crate::user::User).
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/activities#clearactivity)
     pub async fn clear_activity(&self) -> Result<Option<Activity>, Error> {
@@ -557,6 +570,44 @@ impl crate::Discord {
         handle_response!(rx, Command::SetActivity(sa) => {
             Ok(sa.map(|sa| sa.activity))
         })
+    }
+
+    /// Sends a reply to an [Ask to Join](crate::Event::ActivityJoinRequest) request.
+    ///
+    /// [API docs](https://discord.com/developers/docs/game-sdk/activities#sendrequestreply)
+    pub async fn send_join_request_reply(
+        &self,
+        user_id: UserId,
+        reply: impl Into<JoinRequestReply>,
+    ) -> Result<(), Error> {
+        let reply = reply.into();
+
+        let kind = match reply {
+            JoinRequestReply::Yes => CommandKind::SendActivityJoinInvite,
+            JoinRequestReply::No | JoinRequestReply::Ignore => {
+                CommandKind::CloseActivityJoinRequest
+            }
+        };
+
+        #[derive(Serialize)]
+        struct JoinReply {
+            user_id: UserId,
+        }
+
+        let rx = self.send_rpc(kind, JoinReply { user_id })?;
+
+        match reply {
+            JoinRequestReply::Yes => {
+                handle_response!(rx, Command::SendActivityJoinInvite => {
+                    Ok(())
+                })
+            }
+            JoinRequestReply::No | JoinRequestReply::Ignore => {
+                handle_response!(rx, Command::CloseActivityJoinRequest => {
+                    Ok(())
+                })
+            }
+        }
     }
 }
 

@@ -24,7 +24,6 @@ multiple-versions = "deny"
 deny = [
 ]
 skip = [
-    
 ]
 skip-tree = [
     # winit/glium/etc pull in a ridiculous amount of duplicates that I
@@ -42,7 +41,6 @@ allow-git = [
 [sources.allow-org]
 github = [
     "EmbarkStudios",
-    "tokio-rs",
 ]
 
 [licenses]

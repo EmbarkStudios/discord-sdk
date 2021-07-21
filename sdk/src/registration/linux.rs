@@ -61,6 +61,8 @@ pub fn register_app(app: super::Application) -> Result<(), Error> {
         )
         .context("unable to write desktop entry")?;
 
+        // TODO: Would really rather not shell out to a separate program,
+        // ideally would implement this in Rust, C code is located in https://gitlab.freedesktop.org/xdg/desktop-file-utils
         match std::process::Command::new("update-desktop-database")
             .arg(format!("{}", desktop_path.parent().unwrap().display()))
             .status()

@@ -5,6 +5,9 @@ pub struct SecretEvent {
     pub secret: String,
 }
 
+/// Payload for the event fired when a user "Asks to Join" the current user's game
+///
+/// [API docs](https://discord.com/developers/docs/game-sdk/activities#onactivityjoinrequest)
 #[derive(Deserialize, Debug, Clone)]
 pub struct JoinRequestEvent {
     #[serde(deserialize_with = "crate::user::de_user")]

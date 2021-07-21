@@ -1,3 +1,5 @@
+//! Provides types and functionality for [Lobbies](https://discord.com/developers/docs/game-sdk/lobbies)
+
 pub mod events;
 pub mod search;
 pub mod state;
@@ -68,8 +70,8 @@ pub struct Lobby {
     pub locked: bool,
     /// The users and attached metadata that are actually present in the lobby.
     /// This list will be empty if this lobby is deserialized from a
-    /// [`Event::LobbyUpdate`] as that event only fires for metadata changes on
-    /// the lobby itself, not its members.
+    /// [`LobbyUpdate` event](crate::Event::LobbyUpdate) as that event only
+    /// fires for metadata changes on the lobby itself, not its members.
     #[serde(default)]
     pub members: Vec<LobbyMember>,
     /// A set of key value pairs to add arbitrary metadata to the lobby.
@@ -336,8 +338,8 @@ struct LobbyAction {
 }
 
 impl crate::Discord {
-    /// Creates a new [`Lobby`], automatically joining the current [`User`] and
-    /// making them the owner of the [`Lobby`].
+    /// Creates a new [`Lobby`], automatically joining the current
+    /// [`User`](crate::user::User) and making them the owner of the [`Lobby`].
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#createlobby)
     pub async fn create_lobby(&self, args: CreateLobbyBuilder) -> Result<Lobby, Error> {

@@ -1,3 +1,5 @@
+//! Provides types and functionality around [Users](https://discord.com/developers/docs/game-sdk/users)
+
 pub mod events;
 
 use crate::Error;

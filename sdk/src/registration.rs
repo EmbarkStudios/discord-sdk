@@ -1,3 +1,7 @@
+//! Functionality for registering an application with Discord so that Discord can
+//! start it in the future eg. when the user accpets an invite to play the game
+//! by another user
+
 #[cfg_attr(target_os = "linux", path = "registration/linux.rs")]
 #[cfg_attr(target_os = "windows", path = "registration/windows.rs")]
 #[cfg_attr(target_os = "macos", path = "registration/mac.rs")]

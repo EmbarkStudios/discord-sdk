@@ -18,7 +18,7 @@ pub enum CommandKind {
     /// RPC sent when the local user has [`JoinReply::Accept`]ed a join request
     SendActivityJoinInvite,
     /// RPC sent when the local user has [`JoinReply::Reject`]ed a join request
-    CloseActivityRequest,
+    CloseActivityJoinRequest,
     /// RPC sent to invite another [`User`]
     ActivityInviteUser,
     /// RPC sent to accept the invite of another [`User`]
@@ -81,6 +81,8 @@ pub(crate) enum Command {
     SetActivity(Box<Option<crate::activity::SetActivity>>),
     ActivityInviteUser,
     AcceptActivityInvite,
+    SendActivityJoinInvite,
+    CloseActivityJoinRequest,
 
     #[serde(rename = "SET_OVERLAY_LOCKED")]
     SetOverlayVisibility,

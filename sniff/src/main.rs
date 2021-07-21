@@ -545,8 +545,12 @@ impl dgs::EventHandler for Printer {
         println!("ACTIVITY SPECTATE: {}", secret);
     }
 
-    fn on_activity_join_request(&mut self, _discord: &Discord<Self>, user: &dgs::User) {
+    fn on_activity_join_request(&mut self, discord: &Discord<Self>, user: &dgs::User) {
         println!("ACTIVITY JOIN REQUEST: {:#?}", user);
+
+        discord.send_request_reply(user.id(), dgs::RequestReply::No, |_, res| {
+            println!("ACTIVITY JOIN REQUEST REPLY: {:#?}", res);
+        });
     }
 
     fn on_activity_invite(
