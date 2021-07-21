@@ -159,20 +159,30 @@ pub struct ActivityInvite {
     pub message_id: crate::types::MessageId,
 }
 
-/// The reply to send to the [`User`] who sent a join request.
+/// The reply to send to the [`User`] who sent a join request. Note that the
+/// actual values shown in the API docs are irrelevant as the reply on the wire
+/// is actually just different [Commands](crate::CommandKind)
 ///
 /// [API docs](https://discord.com/developers/docs/game-sdk/activities#data-models-activityjoinrequestreply-enum)
-#[derive(
-    serde_repr::Serialize_repr, serde_repr::Deserialize_repr, PartialEq, Debug, Copy, Clone,
-)]
-#[repr(u8)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub enum JoinRequestReply {
     /// Rejects the join request
-    No = 0,
+    No,
     /// Accepts the join request
-    Yes = 1,
-    /// Ignores the join request
-    Ignore = 2,
+    Yes,
+    /// Ignores the join request. This is semantically no different from [`No`],
+    /// at least in the current state of the Discord API
+    Ignore,
+}
+
+impl From<bool> for JoinRequestReply {
+    fn from(b: bool) -> Self {
+        if b {
+            Self::Yes
+        } else {
+            Self::No
+        }
+    }
 }
 
 #[derive(Default, Clone, Debug, Deserialize, Serialize)]
@@ -557,6 +567,44 @@ impl crate::Discord {
         handle_response!(rx, Command::SetActivity(sa) => {
             Ok(sa.map(|sa| sa.activity))
         })
+    }
+
+    /// Sends a reply to an [Ask to Join](crate::Event::ActivityJoinRequest) request.
+    ///
+    /// [API docs](https://discord.com/developers/docs/game-sdk/activities#sendrequestreply)
+    pub async fn send_join_request_reply(
+        &self,
+        user_id: UserId,
+        reply: impl Into<JoinRequestReply>,
+    ) -> Result<(), Error> {
+        let reply = reply.into();
+
+        let kind = match reply {
+            JoinRequestReply::Yes => CommandKind::SendActivityJoinInvite,
+            JoinRequestReply::No | JoinRequestReply::Ignore => {
+                CommandKind::CloseActivityJoinRequest
+            }
+        };
+
+        #[derive(Serialize)]
+        struct JoinReply {
+            user_id: UserId,
+        }
+
+        let rx = self.send_rpc(kind, JoinReply { user_id })?;
+
+        match reply {
+            JoinRequestReply::Yes => {
+                handle_response!(rx, Command::SendActivityJoinInvite => {
+                    Ok(())
+                })
+            }
+            JoinRequestReply::No | JoinRequestReply::Ignore => {
+                handle_response!(rx, Command::CloseActivityJoinRequest => {
+                    Ok(())
+                })
+            }
+        }
     }
 }
 

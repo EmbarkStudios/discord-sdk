@@ -30,8 +30,8 @@ An (unofficial) open source Rust implementation of the [Discord Game SDK](https:
 
 - [x] [Update Activity](https://discord.com/developers/docs/game-sdk/activities#updateactivity)
 - [x] [Clear Activity](https://discord.com/developers/docs/game-sdk/activities#clearactivity)
-- [ ] [Send Join Request Reply](https://discord.com/developers/docs/game-sdk/activities#sendrequestreply)
-- [x] [Send Invite](https://discord.com/developers/docs/game-sdk/activities#sendinvite) - **NOTE**: This seems to be broken on Windows.
+- [x] [Send Join Request Reply](https://discord.com/developers/docs/game-sdk/activities#sendrequestreply)
+- [x] [Send Invite](https://discord.com/developers/docs/game-sdk/activities#sendinvite)
 - [x] [Accept Invite](https://discord.com/developers/docs/game-sdk/activities#acceptinvite)
 
 #### Events
@@ -134,8 +134,6 @@ For now, it's required that you manually spin up 2 different Discord application
 
 ### Activities
 
-**NOTE**: This test does not work on Windows due to a bug in Discord with the `Invite` command.
-
 ```sh
 cargo test --features local-testing test_activity
 ```
@@ -145,7 +143,7 @@ cargo test --features local-testing test_activity
 **NOTE**: This a does not test the lobby `search` functionality as that command seems to be non-functioning and never returns results, even if the [REST](https://discord.com/developers/docs/game-sdk/lobbies#create-lobby-search) equivalent does return the expected results.
 
 ```sh
-cargo test --features local-testing test_local_lobbies
+cargo test --features local-testing test_lobbies
 ```
 
 ## Contribution

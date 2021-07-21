@@ -58,6 +58,10 @@ enum ActivityCmd {
         id: String,
     },
     Accept,
+    Reply {
+        #[structopt(long)]
+        accept: bool,
+    },
     Update(ActivityUpdateCmd),
 }
 
@@ -98,15 +102,25 @@ async fn main() -> Result<(), anyhow::Error> {
     let discord = client.discord;
 
     let (invites_tx, invites_rx) = ds::cc::unbounded();
+    let (joins_tx, joins_rx) = ds::cc::unbounded();
 
     let mut activity_events = wheel.activity().0;
     tokio::task::spawn(async move {
         use activity::events::ActivityEvent;
         while let Ok(ae) = activity_events.recv().await {
-            if let ActivityEvent::Invite(invite) = ae {
-                if invites_tx.send(invite).is_err() {
-                    break;
+            match ae {
+                ActivityEvent::Invite(invite) => {
+                    if invites_tx.send(invite).is_err() {
+                        break;
+                    }
                 }
+                ActivityEvent::JoinRequest(jre) => {
+                    tracing::info!("Received join request from {}", jre.user);
+                    if joins_tx.send(jre.user.id).is_err() {
+                        break;
+                    }
+                }
+                _ => {}
             }
         }
     });
@@ -136,6 +150,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     struct ReplState {
         invites_rx: ds::cc::Receiver<activity::events::InviteEvent>,
+        joins_rx: ds::cc::Receiver<ds::user::UserId>,
         created_lobby: Option<lobby::Lobby>,
         lobbies: std::sync::Arc<lobby::state::LobbyStates>,
         relationships: std::sync::Arc<relations::state::Relationships>,
@@ -143,6 +158,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let mut repl_state = ReplState {
         invites_rx,
+        joins_rx,
         created_lobby: None,
         lobbies: lobby_states,
         relationships,
@@ -250,6 +266,14 @@ async fn main() -> Result<(), anyhow::Error> {
                                     state.invites_rx.try_recv().context("no pending invites")?;
 
                                 discord.accept_invite(&invite).await?;
+                            }
+                            ActivityCmd::Reply { accept } => {
+                                let user = state
+                                    .joins_rx
+                                    .try_recv()
+                                    .context("no pending join requests")?;
+
+                                discord.send_join_request_reply(user, *accept).await?;
                             }
                             ActivityCmd::Invite { id, msg, spectate } => {
                                 let user_id = id.parse().context("invalid user id")?;
