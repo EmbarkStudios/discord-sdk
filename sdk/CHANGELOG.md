@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- Initial version with basic support for [Activities](https://discord.com/developers/docs/game-sdk/activities), [Lobbies](https://discord.com/developers/docs/game-sdk/lobbies), [Overlay](https://discord.com/developers/docs/game-sdk/overlay), [Relationships](https://discord.com/developers/docs/game-sdk/relationships), [Users](https://discord.com/developers/docs/game-sdk/users), and application registration.
 
 ## [0.0.1] - 2021-06-04
 ### Added
