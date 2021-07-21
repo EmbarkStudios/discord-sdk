@@ -15,6 +15,12 @@ impl DiscordHandler for Printer {
 }
 
 /// Forwards messages to a receiver
+///
+/// ```no_run
+/// use discord_sdk as ds;
+/// let (forwarder, mut events) = ds::handlers::Forwarder::new();
+/// let discord = ds::Discord::new(ds::DiscordApp::PlainId(1), ds::Subscriptions::ALL, Box::new(forwarder))?;
+/// ```
 pub struct Forwarder {
     tx: tokio::sync::mpsc::UnboundedSender<DiscordMsg>,
 }

@@ -9,6 +9,7 @@ use crate::{
 };
 use crossbeam_channel as cc;
 
+/// An event or error sent from Discord
 #[derive(Debug)]
 pub enum DiscordMsg {
     Event(Event),

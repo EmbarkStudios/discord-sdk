@@ -1,3 +1,5 @@
+//! Provides types and functionality for the Discord [Overlay](https://discord.com/developers/docs/game-sdk/overlay)
+
 pub mod events;
 
 use crate::{Command, CommandKind, Error};

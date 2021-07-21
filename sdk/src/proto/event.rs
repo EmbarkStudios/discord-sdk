@@ -50,7 +50,7 @@ pub enum Event {
     /// [API docs](https://discord.com/developers/docs/game-sdk/discord#error-handling)
     Error(ErrorPayload),
 
-    /// Sent by Discord upon receipt of our [`Handshake`] message, the user is
+    /// Sent by Discord upon receipt of our `Handshake` message, the user is
     /// the current user logged in to the Discord we connected to.
     Ready(user_events::ConnectEvent),
     /// Fired when the connection has been interrupted between us and Discord,

@@ -12,30 +12,49 @@ keywords = ["discord", "games"]
 readme = "README.md"
 
 [features]
+default = []
 # Enables tests that require 2 running Discord applications (stable, canary, or PTB)
 # with a logged in user, see https://discord.com/developers/docs/game-sdk/sdk-starter-guide#testing-locally-with-two-clients
 local-testing = []
 
 [dependencies]
+# App registration can fail for a large number of reasons including OS specific
+# ones, so the error is just a generic anyhow error for simplicity
 anyhow = "1.0"
-app_dirs2 = "2.3"
 async-trait = "0.1"
+# Lobby messages can be an arbitrary binary blob which needs to be encoded
+# in base64
 base64 = "0.13"
 bitflags = "1.2"
 chrono = "0.4"
 crossbeam-channel = "0.5"
 num-traits = "0.2"
+# Better sync primitives
 parking_lot = "0.11"
 serde = { version = "1.0", features = ["derive", "rc"] }
+# All message payloads are JSON
 serde_json = "1.0"
+# Some enums are encoded as numbers in JSON
 serde_repr = "0.1"
+# Error helpers
 thiserror = "1.0"
+# Tokio is used to drive the IPC I/O as well as provide the core of the overall
+# async API exposed by this crate
 tokio = { version = "1.8.2", features = ["net", "rt-multi-thread", "sync", "time"] }
+# Some additional (mostly debug) output is traced out by this crate
 tracing = "0.1"
+# Applications can be registered with a custom protocol on all OSes
 url = "2.2"
 
+[target.'cfg(target_os = "linux")'.dependencies]
+# We need to lookup directories for placing the desktop entries when doing
+# application registration
+app_dirs2 = "2.3"
+
 [target.'cfg(target_os = "windows")'.dependencies]
+# We need to read and modify the registry when doing application registration
 winreg = "0.9"
 
 [dev-dependencies]
+# So tests can print out tracing
 tracing-subscriber = "0.2"

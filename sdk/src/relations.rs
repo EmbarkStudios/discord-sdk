@@ -1,3 +1,5 @@
+//! Provides types and functionality for [Relationships](https://discord.com/developers/docs/game-sdk/relationships)
+
 pub mod events;
 pub mod state;
 
@@ -53,10 +55,11 @@ pub struct Relationship {
 
 impl crate::Discord {
     /// The regular Game SDK does not really expose this functionality directly,
-    /// but rather exposed via the "on refresh" event as described in the [docs].
+    /// but rather exposed via the "on refresh" event as described in the
+    /// [docs](https://discord.com/developers/docs/game-sdk/relationships#onrefresh).
     ///
     /// Basically, this method should be used to bootstrap the relationships for
-    /// for the user, with updates to that list coming via the
+    /// the current user, with updates to that list coming via the
     /// [`RelationshipUpdate`](crate::Event::RelationshipUpdate) event
     pub async fn get_relationships(&self) -> Result<Vec<Relationship>, Error> {
         let rx = self.send_rpc(crate::proto::CommandKind::GetRelationships, ())?;
