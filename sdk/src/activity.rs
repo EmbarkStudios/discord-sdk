@@ -334,10 +334,7 @@ impl ActivityBuilder {
     }
 
     /// Set the start timestamp for the activity. If only the start is set, Discord will display `XX:XX elapsed`
-    pub fn start_timestamp<T>(mut self, timestamp: T) -> Self
-    where
-        T: IntoTimestamp,
-    {
+    pub fn start_timestamp(mut self, timestamp: impl IntoTimestamp) -> Self {
         match &mut self.inner.activity {
             // Modify an existing activity and add a start timestamp
             Some(activity) => {
@@ -373,10 +370,7 @@ impl ActivityBuilder {
     }
 
     /// Set the end timestamp for the activity. If only the end is set, Discord will display `XX:XX left`
-    pub fn end_timestamp<T>(mut self, timestamp: T) -> Self
-    where
-        T: IntoTimestamp,
-    {
+    pub fn end_timestamp(mut self, timestamp: impl IntoTimestamp) -> Self {
         match &mut self.inner.activity {
             // Modify an existing activity and add a start timestamp
             Some(activity) => {
@@ -431,7 +425,7 @@ impl ActivityBuilder {
             self = self.start_timestamp(st);
         }
         if let Some(et) = end {
-            self = self.start_timestamp(et);
+            self = self.end_timestamp(et);
         }
 
         self
