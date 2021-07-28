@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- [PR#10](https://github.com/EmbarkStudios/discord-sdk/pull/10) added `ActivityBuilder::start_timestamp` and `ActivityBuilder::end_timestamp` as well as implementing `IntoTimestamp` for `i64`. Thanks [@Ewpratten](https://github.com/Ewpratten)!
+
 ## [0.1.0] - 2021-07-21
 ### Added
 - Initial version with basic support for [Activities](https://discord.com/developers/docs/game-sdk/activities), [Lobbies](https://discord.com/developers/docs/game-sdk/lobbies), [Overlay](https://discord.com/developers/docs/game-sdk/overlay), [Relationships](https://discord.com/developers/docs/game-sdk/relationships), [Users](https://discord.com/developers/docs/game-sdk/users), and application registration.
