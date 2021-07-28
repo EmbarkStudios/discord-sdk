@@ -113,8 +113,10 @@ impl Assets {
 /// [API docs](https://discord.com/developers/docs/game-sdk/activities#data-models-activitytimestamps-struct)
 #[derive(Default, Clone, Debug, Serialize, Deserialize)]
 pub struct Timestamps {
-    pub start: i64,
-    pub end: i64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end: Option<i64>,
 }
 
 #[derive(
@@ -332,11 +334,11 @@ impl ActivityBuilder {
     }
 
     /// The start and end of a "game" or "session".
-    pub fn timestamps(
+    pub fn timestamps<T>(
         mut self,
-        start: Option<impl IntoTimestamp>,
-        end: Option<impl IntoTimestamp>,
-    ) -> Self {
+        start: Option<T>,
+        end: Option<T>,
+    ) -> Self where T: IntoTimestamp {
         let start = start.map(IntoTimestamp::into_timestamp);
         let end = end.map(IntoTimestamp::into_timestamp);
 
@@ -347,13 +349,11 @@ impl ActivityBuilder {
                     return self;
                 }
 
-                Some(Timestamps { start: st, end: et })
+                Some(Timestamps { start: Some(st), end: Some(et) })
             }
             (None, None) => return self,
-            _ => {
-                tracing::warn!("Both start and end timestamp must be set");
-                return self;
-            }
+            (Some(st), None) => Some(Timestamps { start: Some(st), end: None }),
+            (None, Some(et)) => Some(Timestamps { start: None, end: Some(et) }),
         };
 
         match &mut self.inner.activity {
