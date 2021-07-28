@@ -43,6 +43,12 @@ struct ActivityUpdateCmd {
     state: String,
     #[structopt(long, default_value = "having fun")]
     details: String,
+    /// Sets the start timestamp to the current system time
+    #[structopt(long)]
+    start: bool,
+    /// Sets the end timestamp to 1 minute in the future
+    #[structopt(long)]
+    end: bool,
 }
 
 #[derive(StructOpt, Debug)]
@@ -303,7 +309,14 @@ async fn main() -> Result<(), anyhow::Error> {
                                         join: Some("joinme".to_owned()),
                                         spectate: Some("spectateme".to_owned()),
                                         r#match: None,
-                                    });
+                                    })
+                                    .timestamps(
+                                        update.start.then(std::time::SystemTime::now),
+                                        update.end.then(|| {
+                                            std::time::SystemTime::now()
+                                                + std::time::Duration::from_secs(60)
+                                        }),
+                                    );
 
                                 discord.update_activity(ab).await?;
                             }
