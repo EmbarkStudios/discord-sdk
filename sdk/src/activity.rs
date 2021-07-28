@@ -333,37 +333,105 @@ impl ActivityBuilder {
         self
     }
 
-    /// The start and end of a "game" or "session".
-    pub fn timestamps<T>(
-        mut self,
-        start: Option<T>,
-        end: Option<T>,
-    ) -> Self where T: IntoTimestamp {
-        let start = start.map(IntoTimestamp::into_timestamp);
-        let end = end.map(IntoTimestamp::into_timestamp);
-
-        let timestamps = match (start, end) {
-            (Some(st), Some(et)) => {
-                if st >= et {
-                    tracing::warn!("End timestamp must be greater than the start timestamp");
-                    return self;
-                }
-
-                Some(Timestamps { start: Some(st), end: Some(et) })
-            }
-            (None, None) => return self,
-            (Some(st), None) => Some(Timestamps { start: Some(st), end: None }),
-            (None, Some(et)) => Some(Timestamps { start: None, end: Some(et) }),
-        };
-
+    /// Set the start timestamp for the activity. If only the start is set, Discord will display `XX:XX elapsed`
+    pub fn start_timestamp<T>(mut self, timestamp: T) -> Self
+    where
+        T: IntoTimestamp,
+    {
         match &mut self.inner.activity {
-            Some(activity) => activity.timestamps = timestamps,
+            // Modify an existing activity and add a start timestamp
+            Some(activity) => {
+                match &mut activity.timestamps {
+                    // Add a start timestamp to an existing timestamp object
+                    Some(timestamps) => {
+                        timestamps.start = Some(timestamp.into_timestamp());
+                    }
+
+                    // Create a new timestamp object and set its start
+                    None => {
+                        activity.timestamps = Some(Timestamps {
+                            start: Some(timestamp.into_timestamp()),
+                            end: None,
+                        });
+                    }
+                }
+            }
+
+            // Init a new activity with only a start timestamp
             None => {
                 self.inner.activity = Some(Activity {
-                    timestamps,
+                    timestamps: Some(Timestamps {
+                        start: Some(timestamp.into_timestamp()),
+                        end: None,
+                    }),
                     ..Default::default()
                 });
             }
+        }
+
+        self
+    }
+
+    /// Set the end timestamp for the activity. If only the end is set, Discord will display `XX:XX left`
+    pub fn end_timestamp<T>(mut self, timestamp: T) -> Self
+    where
+        T: IntoTimestamp,
+    {
+        match &mut self.inner.activity {
+            // Modify an existing activity and add a start timestamp
+            Some(activity) => {
+                match &mut activity.timestamps {
+                    // Add an end timestamp to an existing timestamp object
+                    // Only done if the end is after the start
+                    Some(timestamps) => {
+                        let timestamp = timestamp.into_timestamp();
+                        let start = timestamps.start.unwrap_or(0);
+
+                        if start > timestamp {
+                            tracing::warn!(
+                                "End timestamp must be greater than the start timestamp"
+                            );
+                        } else {
+                            timestamps.end = Some(timestamp.into_timestamp());
+                        }
+
+                    }
+
+                    // Create a new timestamp object and set its end
+                    None => {
+                        activity.timestamps = Some(Timestamps {
+                            start: None,
+                            end: Some(timestamp.into_timestamp()),
+                        });
+                    }
+                }
+            }
+
+            // Init a new activity with only an end timestamp
+            None => {
+                self.inner.activity = Some(Activity {
+                    timestamps: Some(Timestamps {
+                        start: None,
+                        end: Some(timestamp.into_timestamp()),
+                    }),
+                    ..Default::default()
+                });
+            }
+        }
+
+        self
+    }
+
+    /// The start and end of a "game" or "session".
+    #[deprecated(note = "Use start_timestamp and end_timestamp instead")]
+    pub fn timestamps(mut self, start: Option<impl IntoTimestamp>, end: Option<impl IntoTimestamp>) -> Self
+    
+    {
+        if let Some(st) = start {
+            self = self.start_timestamp(st);
+        }
+        if let Some(et) = end {
+            self = self.start_timestamp(et);
         }
 
         self

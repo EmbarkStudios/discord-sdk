@@ -22,7 +22,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 .large("the".to_owned(), Some("u mage".to_owned()))
                 .small("the".to_owned(), Some("i mage".to_owned())),
         )
-        .timestamps(Some(SystemTime::now()), None);
+        .start_timestamp(SystemTime::now());
 
     tracing::info!(
         "updated activity: {:?}",
