@@ -311,7 +311,7 @@ async fn main() -> Result<(), anyhow::Error> {
                                         r#match: None,
                                     })
                                     .timestamps(
-                                        update.start.then(|| std::time::SystemTime::now()),
+                                        update.start.then(std::time::SystemTime::now),
                                         update.end.then(|| {
                                             std::time::SystemTime::now()
                                                 + std::time::Duration::from_secs(60)
