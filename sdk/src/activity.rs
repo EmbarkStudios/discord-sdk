@@ -49,6 +49,12 @@ impl<Tz: chrono::TimeZone> IntoTimestamp for chrono::DateTime<Tz> {
     }
 }
 
+impl IntoTimestamp for i64 {
+    fn into_timestamp(self) -> i64 {
+        self
+    }
+}
+
 /// The custom art assets to be used in the user's profile when the activity
 /// is set. These assets need to be already uploaded to Discord in the application's
 /// developer settings.
