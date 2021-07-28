@@ -423,7 +423,6 @@ impl ActivityBuilder {
     }
 
     /// The start and end of a "game" or "session".
-    #[deprecated(note = "Use start_timestamp and end_timestamp instead")]
     pub fn timestamps(mut self, start: Option<impl IntoTimestamp>, end: Option<impl IntoTimestamp>) -> Self
     
     {
