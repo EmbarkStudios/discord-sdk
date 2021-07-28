@@ -394,7 +394,6 @@ impl ActivityBuilder {
                         } else {
                             timestamps.end = Some(timestamp.into_timestamp());
                         }
-
                     }
 
                     // Create a new timestamp object and set its end
@@ -423,9 +422,11 @@ impl ActivityBuilder {
     }
 
     /// The start and end of a "game" or "session".
-    pub fn timestamps(mut self, start: Option<impl IntoTimestamp>, end: Option<impl IntoTimestamp>) -> Self
-    
-    {
+    pub fn timestamps(
+        mut self,
+        start: Option<impl IntoTimestamp>,
+        end: Option<impl IntoTimestamp>,
+    ) -> Self {
         if let Some(st) = start {
             self = self.start_timestamp(st);
         }
