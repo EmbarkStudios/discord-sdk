@@ -47,11 +47,11 @@ An (unofficial) open source Rust implementation of the [Discord Game SDK](https:
 
 ### TODO: [Applications](https://discord.com/developers/docs/game-sdk/applications)
 
-### TODO: [Voice](https://discord.com/developers/docs/game-sdk/discord-voice)
+### :warning: [Voice](https://discord.com/developers/docs/game-sdk/discord-voice)
 
 ### TODO: [Images](https://discord.com/developers/docs/game-sdk/images)
 
-### [Lobbies](https://discord.com/developers/docs/game-sdk/lobbies)
+### :warning: [Lobbies](https://discord.com/developers/docs/game-sdk/lobbies)
 
 #### Commands
 
@@ -80,7 +80,7 @@ An (unofficial) open source Rust implementation of the [Discord Game SDK](https:
 
 - [ ] [Integrated Networking](https://discord.com/developers/docs/game-sdk/lobbies#integrated-networking)
 
-### TODO: [Networking](https://discord.com/developers/docs/game-sdk/networking)
+### :warning: [Networking](https://discord.com/developers/docs/game-sdk/networking)
 
 ### [Overlay](https://discord.com/developers/docs/game-sdk/overlay)
 
@@ -125,6 +125,10 @@ Also note, the SDK itself and its documentation uses the utterly confusing termi
 #### Events
 
 - [x] [Current User Update](https://discord.com/developers/docs/game-sdk/users#oncurrentuserupdate)
+
+### :warning:
+
+This hasn't been officially announced by Discord yet, but the [Voice](#voice), [Lobbies](#lobbies), and [Networking](#networking) functionality will be deprecated and removed sometime in the future. Since only the lobbies functionality has been implemented thusfar, we will mark that functionality as [`deprecated`](https://doc.rust-lang.org/reference/attributes/diagnostics.html#the-deprecated-attribute) once it is official.
 
 ## Testing
 
