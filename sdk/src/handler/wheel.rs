@@ -94,7 +94,7 @@ where
     F: Fn(crate::Error) + Send + Sync,
 {
     async fn on_error(&self, error: crate::Error) {
-        self(error)
+        self(error);
     }
 }
 
