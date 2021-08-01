@@ -47,11 +47,11 @@ An (unofficial) open source Rust implementation of the [Discord Game SDK](https:
 
 ### TODO: [Applications](https://discord.com/developers/docs/game-sdk/applications)
 
-### TODO: [Voice](https://discord.com/developers/docs/game-sdk/discord-voice)
+### ⚠️ [Voice](https://discord.com/developers/docs/game-sdk/discord-voice)
 
 ### TODO: [Images](https://discord.com/developers/docs/game-sdk/images)
 
-### [Lobbies](https://discord.com/developers/docs/game-sdk/lobbies)
+### ⚠️ [Lobbies](https://discord.com/developers/docs/game-sdk/lobbies)
 
 #### Commands
 
@@ -80,7 +80,7 @@ An (unofficial) open source Rust implementation of the [Discord Game SDK](https:
 
 - [ ] [Integrated Networking](https://discord.com/developers/docs/game-sdk/lobbies#integrated-networking)
 
-### TODO: [Networking](https://discord.com/developers/docs/game-sdk/networking)
+### ⚠️ [Networking](https://discord.com/developers/docs/game-sdk/networking)
 
 ### [Overlay](https://discord.com/developers/docs/game-sdk/overlay)
 
@@ -119,12 +119,16 @@ Also note, the SDK itself and its documentation uses the utterly confusing termi
 
 #### Commands
 
-- [ ] [Get Current User](https://discord.com/developers/docs/game-sdk/users#getcurrentuser)
+- [x] [Get Current User](https://discord.com/developers/docs/game-sdk/users#getcurrentuser)
 - [ ] [Get User](https://discord.com/developers/docs/game-sdk/users#getuser)
 
 #### Events
 
 - [x] [Current User Update](https://discord.com/developers/docs/game-sdk/users#oncurrentuserupdate)
+
+### ⚠️ Deprecation
+
+This hasn't been officially announced by Discord yet, but the [Voice](#voice), [Lobbies](#lobbies), and [Networking](#networking) functionality will be deprecated and removed sometime in the future. Since only the lobbies functionality has been implemented thusfar, we will mark that functionality as [`deprecated`](https://doc.rust-lang.org/reference/attributes/diagnostics.html#the-deprecated-attribute) once it is official.
 
 ## Testing
 
@@ -155,14 +159,14 @@ We welcome community contributions to this project.
 Please read our [Contributor Guide](CONTRIBUTING.md) for more information on how to get started.
 Please also read our [Contributor Terms](CONTRIBUTING.md/#Contributor-Terms) before you make any contributions.
 
-Any contribution intentionally submitted for inclusion in an Embark Studios project, shall comply with the Rust standard licensing model (MIT + Apache 2.0) and therefore be dual licensed as described below, without any additional terms or conditions:
+Any contribution intentionally submitted for inclusion in an Embark Studios project, shall comply with the Rust standard licensing model (MIT OR Apache 2.0) and therefore be dual licensed as described below, without any additional terms or conditions:
 
 ### License
 
-This [contribution] is dual licensed under EITHER OF
+This contribution is dual licensed under EITHER OF
 
-* Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
-* MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+* Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>
+* MIT license ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
 
 at your option.
 
