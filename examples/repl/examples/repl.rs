@@ -39,9 +39,9 @@ enum LobbyCmd {
 
 #[derive(StructOpt, Debug)]
 struct ActivityUpdateCmd {
-    #[structopt(long, default_value = "repling")]
+    #[structopt(long, default_value = "")]
     state: String,
-    #[structopt(long, default_value = "having fun")]
+    #[structopt(long, default_value = "")]
     details: String,
     /// Sets the start timestamp to the current system time
     #[structopt(long)]

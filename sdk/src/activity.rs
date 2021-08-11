@@ -683,13 +683,19 @@ impl crate::Discord {
 /// so we just truncate them manually client side to avoid sending more data
 #[inline]
 fn truncate(text: Option<impl Into<String>>, name: &str) -> Option<String> {
-    text.map(|text| {
+    text.and_then(|text| {
         let mut text = text.into();
         if text.len() > 128 {
             tracing::warn!("{} '{}' is too long and will be truncated", name, text);
             text.truncate(128);
         }
 
-        text
+        // Ensure the strings don't have just whitespace, as they are also not
+        // allowed
+        if text.trim().is_empty() {
+            None
+        } else {
+            Some(text)
+        }
     })
 }
