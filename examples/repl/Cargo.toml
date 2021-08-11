@@ -10,4 +10,5 @@ doctest = false
 
 [dev-dependencies]
 examples-shared = { path = "../../examples-shared" }
+shell-words = "1.0"
 structopt = "0.3"

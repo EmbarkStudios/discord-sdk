@@ -175,9 +175,18 @@ async fn main() -> Result<(), anyhow::Error> {
         line.clear();
 
         let _ = std::io::stdin().read_line(&mut line);
+        // Remove trailing newline
         line.pop();
 
-        match Cmd::from_iter_safe(std::iter::once("repl").chain(line.split(' '))) {
+        let split = match shell_words::split(&line) {
+            Ok(sl) => sl,
+            Err(e) => {
+                tracing::error!("failed to split command: {}", e);
+                continue;
+            }
+        };
+
+        match Cmd::from_iter_safe(std::iter::once("repl".to_owned()).chain(split.into_iter())) {
             Ok(cmd) => {
                 if let Cmd::Exit = &cmd {
                     break;
