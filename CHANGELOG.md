@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.1.2] - 2021-08-11
+### Fixed
+- [PR#14](https://github.com/EmbarkStudios/discord-sdk/pull/14) fixed an issue where the `RELATIONSHIP_UPDATE` event actually uses stringized timestamps in the activity information, rather than the normal `i64` timestamps in eg `SET_ACTIVITY`.
+- [PR#14](https://github.com/EmbarkStudios/discord-sdk/pull/14) fixed an issue with timestamps being converted into `chrono::DateTime<Utc>` with the wrong unit, resulting in date times far in the future.
+- [PR#14](https://github.com/EmbarkStudios/discord-sdk/pull/14) added more sanitization to `crate::activity::ActivityBuilder` to prevent strings with just whitespace being sent to Discord as that results in API failures.
+
 ## [0.1.1] - 2021-07-28
 ### Added
 - [PR#10](https://github.com/EmbarkStudios/discord-sdk/pull/10) added `ActivityBuilder::start_timestamp` and `ActivityBuilder::end_timestamp` as well as implementing `IntoTimestamp` for `i64`. Thanks [@Ewpratten](https://github.com/Ewpratten)!
@@ -19,7 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial crate squat
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/discord-sdk/compare/0.1.1...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/discord-sdk/compare/0.1.2...HEAD
+[0.1.2]: https://github.com/EmbarkStudios/discord-sdk/compare/0.1.1...0.1.2
 [0.1.1]: https://github.com/EmbarkStudios/discord-sdk/compare/0.1.0...0.1.1
 [0.1.0]: https://github.com/EmbarkStudios/discord-sdk/compare/0.0.1...0.1.0
 [0.0.1]: https://github.com/EmbarkStudios/discord-sdk/releases/tag/0.0.1
