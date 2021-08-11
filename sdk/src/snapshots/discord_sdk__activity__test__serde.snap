@@ -1,0 +1,31 @@
+---
+source: sdk/src/activity.rs
+expression: cmd
+
+---
+{
+  "cmd": "SET_ACTIVITY",
+  "nonce": "2",
+  "args": {
+    "pid": 9999,
+    "activity": {
+      "details": "deetz",
+      "timestamps": {
+        "start": 1628629161811,
+        "end": 1628629327961
+      },
+      "party": {
+        "id": "parrrrty",
+        "size": [
+          1,
+          2
+        ],
+        "privacy": 0
+      },
+      "secrets": {
+        "join": "sekret"
+      },
+      "instance": false
+    }
+  }
+}

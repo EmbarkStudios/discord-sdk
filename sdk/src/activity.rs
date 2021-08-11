@@ -293,6 +293,16 @@ impl ActivityBuilder {
         Self::default()
     }
 
+    #[cfg(test)]
+    pub fn with_pid(pid: u32) -> Self {
+        Self {
+            inner: ActivityArgs {
+                pid,
+                activity: None,
+            },
+        }
+    }
+
     /// The user's currenty party status, eg. "Playing Solo".
     ///
     /// Limited to 128 bytes.
@@ -698,4 +708,39 @@ fn truncate(text: Option<impl Into<String>>, name: &str) -> Option<String> {
             Some(text)
         }
     })
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn serde() {
+        let args: ActivityArgs = ActivityBuilder::with_pid(9999)
+            .details("deetz")
+            // This won't be set, as empty state is not allowed
+            .state("       ")
+            .start_timestamp(1628629161811)
+            .end_timestamp(1628629327961)
+            .party(
+                "parrrrty",
+                std::num::NonZeroU32::new(1),
+                std::num::NonZeroU32::new(2),
+                PartyPrivacy::Private,
+            )
+            .secrets(Secrets {
+                join: Some("sekret".to_owned()),
+                ..Default::default()
+            })
+            .into();
+
+        let cmd = crate::proto::Rpc {
+            cmd: CommandKind::SetActivity,
+            nonce: 2.to_string(),
+            evt: None,
+            args: Some(args),
+        };
+
+        insta::assert_json_snapshot!(cmd);
+    }
 }
