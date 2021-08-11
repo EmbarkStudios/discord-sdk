@@ -44,6 +44,7 @@ pub(crate) enum EventKind {
 /// ```
 #[derive(Deserialize, Debug)]
 #[serde(tag = "evt", content = "data", rename_all = "SCREAMING_SNAKE_CASE")]
+#[cfg_attr(test, derive(Serialize))]
 pub enum Event {
     /// Fires when we've done something naughty and Discord is telling us to stop.
     ///
@@ -143,6 +144,7 @@ pub enum Event {
 /// }
 /// ```
 #[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(Serialize))]
 pub(crate) struct EventFrame {
     /// The actual data payload, we don't care about "cmd" or "nonce" since
     /// nonce is not set for events and cmd is always `DISPATCH`.

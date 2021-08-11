@@ -8,6 +8,67 @@ use std::{convert::TryFrom, fmt};
 
 pub type UserId = crate::types::Snowflake;
 
+/// The MD5 hash of a user's avatar
+#[derive(Clone)]
+pub struct Avatar(pub [u8; 16]);
+
+impl Avatar {
+    pub(crate) fn from_str(ava_str: &str) -> Option<Self> {
+        let avatar = ava_str.strip_prefix("a_").unwrap_or(ava_str);
+
+        if avatar.len() != 32 {
+            None
+        } else {
+            let mut md5 = [0u8; 16];
+
+            for (ind, exp) in avatar.as_bytes().chunks(2).enumerate() {
+                let mut cur = match exp[0] {
+                    b'A'..=b'F' => exp[0] - b'A' + 10,
+                    b'a'..=b'f' => exp[0] - b'a' + 10,
+                    b'0'..=b'9' => exp[0] - b'0',
+                    c => {
+                        tracing::debug!("invalid character '{}' found in avatar", c);
+                        return None;
+                    }
+                };
+
+                cur <<= 4;
+
+                cur |= match exp[1] {
+                    b'A'..=b'F' => exp[1] - b'A' + 10,
+                    b'a'..=b'f' => exp[1] - b'a' + 10,
+                    b'0'..=b'9' => exp[1] - b'0',
+                    c => {
+                        tracing::debug!("invalid character '{}' found in avatar", c);
+                        return None;
+                    }
+                };
+
+                md5[ind] = cur;
+            }
+
+            Some(Self(md5))
+        }
+    }
+}
+
+#[cfg(test)]
+impl serde::Serialize for Avatar {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        use std::fmt::Write;
+        let mut hex_str = String::with_capacity(32);
+
+        for byte in self.0 {
+            let _ = write!(&mut hex_str, "{:02x}", byte);
+        }
+
+        serializer.serialize_str(&hex_str)
+    }
+}
+
 /// A Discord user.
 ///
 /// [API docs](https://discord.com/developers/docs/game-sdk/users#data-models-user-struct)
@@ -21,9 +82,40 @@ pub struct User {
     /// disambiguate between users with the same username
     pub discriminator: Option<u32>,
     /// The MD5 hash of the user's avatar
-    pub avatar: Option<[u8; 16]>,
+    pub avatar: Option<Avatar>,
     /// Whether the user belongs to an OAuth2 application
     pub is_bot: bool,
+}
+
+impl<'de> Deserialize<'de> for User {
+    fn deserialize<D>(d: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let u: DeUser<'de> = serde::de::Deserialize::deserialize(d)?;
+        Self::try_from(u).map_err(serde::de::Error::custom)
+    }
+}
+
+#[cfg(test)]
+impl serde::Serialize for User {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+
+        let mut state = serializer.serialize_struct("User", 5)?;
+        state.serialize_field("id", &self.id)?;
+        state.serialize_field("username", &self.username)?;
+        state.serialize_field(
+            "discriminator",
+            &self.discriminator.unwrap_or_default().to_string(),
+        )?;
+        state.serialize_field("avatar", &self.avatar)?;
+        state.serialize_field("bot", &self.is_bot)?;
+        state.end()
+    }
 }
 
 impl fmt::Debug for User {
@@ -69,14 +161,6 @@ struct DeUser<'u> {
     bot: Option<bool>,
 }
 
-pub(crate) fn de_user<'de, D>(d: D) -> Result<User, D::Error>
-where
-    D: serde::de::Deserializer<'de>,
-{
-    let u: DeUser<'de> = serde::de::Deserialize::deserialize(d)?;
-    User::try_from(u).map_err(serde::de::Error::custom)
-}
-
 impl<'de> TryFrom<DeUser<'de>> for User {
     type Error = Error;
 
@@ -97,48 +181,7 @@ impl<'de> TryFrom<DeUser<'de>> for User {
         };
         // We don't really do anything with this so it's allowed to fail
         let avatar = match u.avatar {
-            Some(a) => {
-                let avatar = a.strip_prefix("a_").unwrap_or(a);
-
-                if avatar.len() != 32 {
-                    None
-                } else {
-                    let mut md5 = [0u8; 16];
-                    let mut valid = true;
-
-                    for (ind, exp) in avatar.as_bytes().chunks(2).enumerate() {
-                        let mut cur;
-
-                        match exp[0] {
-                            b'A'..=b'F' => cur = exp[0] - b'A' + 10,
-                            b'a'..=b'f' => cur = exp[0] - b'a' + 10,
-                            b'0'..=b'9' => cur = exp[0] - b'0',
-                            c => {
-                                tracing::debug!("invalid character '{}' found in avatar", c);
-                                valid = false;
-                                break;
-                            }
-                        }
-
-                        cur <<= 4;
-
-                        match exp[1] {
-                            b'A'..=b'F' => cur |= exp[1] - b'A' + 10,
-                            b'a'..=b'f' => cur |= exp[1] - b'a' + 10,
-                            b'0'..=b'9' => cur |= exp[1] - b'0',
-                            c => {
-                                tracing::debug!("invalid character '{}' found in avatar", c);
-                                valid = false;
-                                break;
-                            }
-                        }
-
-                        md5[ind] = cur;
-                    }
-
-                    valid.then(|| md5)
-                }
-            }
+            Some(a) => Avatar::from_str(a),
             None => None,
         };
 

@@ -1,0 +1,39 @@
+---
+source: sdk/src/relations.rs
+expression: eve
+
+---
+{
+  "evt": "RELATIONSHIP_UPDATE",
+  "data": {
+    "type": 1,
+    "user": {
+      "id": "123414231424",
+      "username": "name",
+      "discriminator": "52",
+      "avatar": "f62f2a755cb18c94dc5cda94441024f1",
+      "bot": false
+    },
+    "presence": {
+      "status": "dnd",
+      "activity": {
+        "session_id": "6bb1ddaea510750e905615286709d632",
+        "state": "Rob Curly",
+        "details": "To the Moon",
+        "timestamps": {
+          "start": "1628629161811",
+          "end": "1628629327961"
+        },
+        "assets": {
+          "large_image": "spotify:ab67616d0000b273d1e326d10706f3d8562d77f8",
+          "large_text": "To the Moon"
+        },
+        "party": {
+          "id": "spotify: 216453179196440576"
+        },
+        "type": 2,
+        "instance": false
+      }
+    }
+  }
+}

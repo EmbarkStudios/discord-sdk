@@ -2,6 +2,7 @@ use super::Visibility;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(serde::Serialize))]
 pub struct UpdateEvent {
     /// Whether the user has the overlay enabled or disabled. If the overlay
     /// is disabled, all the functionality of the SDK will still work. The

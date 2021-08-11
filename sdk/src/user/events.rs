@@ -1,6 +1,7 @@
 use super::*;
 
 #[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(serde::Serialize))]
 pub struct ConnectEvent {
     /// The protocol version, we only support v1, which is fine since that is
     /// (currently) the only version
@@ -8,14 +9,14 @@ pub struct ConnectEvent {
     pub version: u32,
     pub config: crate::types::DiscordConfig,
     /// The user that is logged into the Discord application we connected to
-    #[serde(deserialize_with = "crate::user::de_user")]
     pub user: User,
 }
 
 #[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(serde::Serialize))]
 pub struct UpdateEvent {
     /// The user that is logged into the Discord application we connected to
-    #[serde(flatten, deserialize_with = "crate::user::de_user")]
+    #[serde(flatten)]
     pub user: User,
 }
 

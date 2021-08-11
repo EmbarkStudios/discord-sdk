@@ -153,9 +153,9 @@ pub enum ActivityActionKind {
 }
 
 #[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(Serialize))]
 pub struct ActivityInvite {
     /// The user that invited the current user to the activity
-    #[serde(deserialize_with = "crate::user::de_user")]
     pub user: crate::user::User,
     /// The activity the invite is for
     pub activity: InviteActivity,
@@ -224,14 +224,12 @@ pub struct Activity {
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(Serialize))]
 pub struct InviteActivity {
     /// The unique identifier for the activity
     pub session_id: String,
     /// The timestamp the activity was created
-    #[serde(
-        skip_serializing,
-        deserialize_with = "crate::util::timestamp::deserialize_opt"
-    )]
+    #[serde(skip_serializing, with = "crate::util::datetime_opt")]
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
     /// The usual activity data
     #[serde(flatten)]
@@ -602,7 +600,7 @@ impl crate::Discord {
     /// Accepts the invite to another user's activity.
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/activities#acceptinvite)
-    pub async fn accept_invite(&self, invite: &ActivityInvite) -> Result<(), Error> {
+    pub async fn accept_invite(&self, invite: &impl AsRef<ActivityInvite>) -> Result<(), Error> {
         #[derive(Serialize)]
         struct Accept<'stack> {
             user_id: UserId,
@@ -612,6 +610,8 @@ impl crate::Discord {
             channel_id: crate::types::ChannelId,
             message_id: crate::types::MessageId,
         }
+
+        let invite = invite.as_ref();
 
         let rx = self.send_rpc(
             CommandKind::AcceptActivityInvite,
