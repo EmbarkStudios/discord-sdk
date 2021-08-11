@@ -1,6 +1,7 @@
 use super::*;
 
 #[derive(Deserialize, Debug, Clone)]
+#[cfg_attr(test, derive(serde::Serialize))]
 pub struct SpeakingEvent {
     /// The lobby with the voice channel
     pub lobby_id: LobbyId,
@@ -9,6 +10,7 @@ pub struct SpeakingEvent {
 }
 
 #[derive(Deserialize, Debug, Clone)]
+#[cfg_attr(test, derive(serde::Serialize))]
 pub struct MemberEvent {
     /// The lobby where the member state changed
     pub lobby_id: LobbyId,
@@ -17,6 +19,7 @@ pub struct MemberEvent {
 }
 
 #[derive(Deserialize, Debug, Clone)]
+#[cfg_attr(test, derive(serde::Serialize))]
 pub struct MessageEvent {
     /// The lobby the messsage was sent to
     pub lobby_id: LobbyId,

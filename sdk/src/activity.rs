@@ -153,9 +153,9 @@ pub enum ActivityActionKind {
 }
 
 #[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(Serialize))]
 pub struct ActivityInvite {
     /// The user that invited the current user to the activity
-    #[serde(deserialize_with = "crate::user::de_user")]
     pub user: crate::user::User,
     /// The activity the invite is for
     pub activity: InviteActivity,
@@ -224,14 +224,12 @@ pub struct Activity {
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(Serialize))]
 pub struct InviteActivity {
     /// The unique identifier for the activity
     pub session_id: String,
     /// The timestamp the activity was created
-    #[serde(
-        skip_serializing,
-        deserialize_with = "crate::util::timestamp::deserialize_opt"
-    )]
+    #[serde(skip_serializing, with = "crate::util::datetime_opt")]
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
     /// The usual activity data
     #[serde(flatten)]
@@ -293,6 +291,16 @@ pub struct ActivityBuilder {
 impl ActivityBuilder {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    #[cfg(test)]
+    pub fn with_pid(pid: u32) -> Self {
+        Self {
+            inner: ActivityArgs {
+                pid,
+                activity: None,
+            },
+        }
     }
 
     /// The user's currenty party status, eg. "Playing Solo".
@@ -602,7 +610,7 @@ impl crate::Discord {
     /// Accepts the invite to another user's activity.
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/activities#acceptinvite)
-    pub async fn accept_invite(&self, invite: &ActivityInvite) -> Result<(), Error> {
+    pub async fn accept_invite(&self, invite: &impl AsRef<ActivityInvite>) -> Result<(), Error> {
         #[derive(Serialize)]
         struct Accept<'stack> {
             user_id: UserId,
@@ -612,6 +620,8 @@ impl crate::Discord {
             channel_id: crate::types::ChannelId,
             message_id: crate::types::MessageId,
         }
+
+        let invite = invite.as_ref();
 
         let rx = self.send_rpc(
             CommandKind::AcceptActivityInvite,
@@ -683,13 +693,54 @@ impl crate::Discord {
 /// so we just truncate them manually client side to avoid sending more data
 #[inline]
 fn truncate(text: Option<impl Into<String>>, name: &str) -> Option<String> {
-    text.map(|text| {
+    text.and_then(|text| {
         let mut text = text.into();
         if text.len() > 128 {
             tracing::warn!("{} '{}' is too long and will be truncated", name, text);
             text.truncate(128);
         }
 
-        text
+        // Ensure the strings don't have just whitespace, as they are also not
+        // allowed
+        if text.trim().is_empty() {
+            None
+        } else {
+            Some(text)
+        }
     })
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn serde() {
+        let args: ActivityArgs = ActivityBuilder::with_pid(9999)
+            .details("deetz")
+            // This won't be set, as empty state is not allowed
+            .state("       ")
+            .start_timestamp(1628629161811)
+            .end_timestamp(1628629327961)
+            .party(
+                "parrrrty",
+                std::num::NonZeroU32::new(1),
+                std::num::NonZeroU32::new(2),
+                PartyPrivacy::Private,
+            )
+            .secrets(Secrets {
+                join: Some("sekret".to_owned()),
+                ..Default::default()
+            })
+            .into();
+
+        let cmd = crate::proto::Rpc {
+            cmd: CommandKind::SetActivity,
+            nonce: 2.to_string(),
+            evt: None,
+            args: Some(args),
+        };
+
+        insta::assert_json_snapshot!(cmd);
+    }
 }

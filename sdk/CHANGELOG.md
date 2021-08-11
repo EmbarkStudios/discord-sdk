@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#14](https://github.com/EmbarkStudios/discord-sdk/pull/14) fixed an issue where the `RELATIONSHIP_UPDATE` event actually uses stringized timestamps in the activity information, rather than the normal `i64` timestamps in eg `SET_ACTIVITY`.
+- [PR#14](https://github.com/EmbarkStudios/discord-sdk/pull/14) fixed an issue with timestamps being converted into `chrono::DateTime<Utc>` with the wrong unit, resulting in date times far in the future.
+- [PR#14](https://github.com/EmbarkStudios/discord-sdk/pull/14) added more sanitization to `crate::activity::ActivityBuilder` to prevent strings with just whitespace being sent to Discord as that results in API failures.
+
 ## [0.1.1] - 2021-07-28
 ### Added
 - [PR#10](https://github.com/EmbarkStudios/discord-sdk/pull/10) added `ActivityBuilder::start_timestamp` and `ActivityBuilder::end_timestamp` as well as implementing `IntoTimestamp` for `i64`. Thanks [@Ewpratten](https://github.com/Ewpratten)!

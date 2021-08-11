@@ -48,6 +48,7 @@ pub enum LobbyKind {
 
 /// The voice states that can be attached to each lobby member
 #[derive(Deserialize, Debug, Clone)]
+#[cfg_attr(test, derive(serde::Serialize))]
 pub struct VoiceState {
     pub channel_id: crate::types::ChannelId,
     pub deaf: bool,
@@ -61,6 +62,7 @@ pub struct VoiceState {
 }
 
 #[derive(Deserialize, Debug, Clone)]
+#[cfg_attr(test, derive(serde::Serialize))]
 pub struct Lobby {
     /// The unique identifier for the lobby.
     pub id: LobbyId,
@@ -91,9 +93,9 @@ pub struct Lobby {
 }
 
 #[derive(Deserialize, Debug, Clone)]
+#[cfg_attr(test, derive(serde::Serialize))]
 pub struct LobbyMember {
     pub metadata: Metadata,
-    #[serde(deserialize_with = "crate::user::de_user")]
     pub user: crate::user::User,
     #[serde(skip)]
     pub speaking: bool,

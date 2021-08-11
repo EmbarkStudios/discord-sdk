@@ -1,6 +1,7 @@
 use super::*;
 
 #[derive(Deserialize, Debug, Clone)]
+#[cfg_attr(test, derive(serde::Serialize))]
 pub struct SecretEvent {
     pub secret: String,
 }
@@ -9,12 +10,20 @@ pub struct SecretEvent {
 ///
 /// [API docs](https://discord.com/developers/docs/game-sdk/activities#onactivityjoinrequest)
 #[derive(Deserialize, Debug, Clone)]
+#[cfg_attr(test, derive(serde::Serialize))]
 pub struct JoinRequestEvent {
-    #[serde(deserialize_with = "crate::user::de_user")]
     pub user: crate::user::User,
 }
 
-pub type InviteEvent = std::sync::Arc<crate::activity::ActivityInvite>;
+#[derive(Deserialize, Debug, Clone)]
+#[cfg_attr(test, derive(serde::Serialize))]
+pub struct InviteEvent(pub std::sync::Arc<crate::activity::ActivityInvite>);
+
+impl AsRef<crate::activity::ActivityInvite> for InviteEvent {
+    fn as_ref(&self) -> &crate::activity::ActivityInvite {
+        &self.0
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum ActivityEvent {

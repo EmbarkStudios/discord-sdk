@@ -5,8 +5,11 @@ pub mod state;
 
 use crate::{user::User, Error};
 use serde::Deserialize;
+#[cfg(test)]
+use serde::Serialize;
 
 #[derive(Copy, Clone, Debug, PartialEq, serde_repr::Deserialize_repr)]
+#[cfg_attr(test, derive(serde_repr::Serialize_repr))]
 #[repr(u8)]
 pub enum RelationKind {
     /// User has no intrinsic relationship
@@ -24,6 +27,7 @@ pub enum RelationKind {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Deserialize)]
+#[cfg_attr(test, derive(Serialize))]
 #[serde(rename_all = "snake_case")]
 pub enum RelationStatus {
     /// The user is offline
@@ -37,18 +41,73 @@ pub enum RelationStatus {
     DoNotDisturb,
 }
 
-#[derive(Debug, Clone, Deserialize)]
-pub struct RelationshipPresence {
-    pub status: RelationStatus,
-    pub activity: Option<crate::activity::Activity>,
+/// The start and end timestamp of the activity. These are unix timestamps.
+///
+/// [API docs](https://discord.com/developers/docs/game-sdk/activities#data-models-activitytimestamps-struct)
+#[derive(Default, Clone, Debug, Deserialize)]
+#[cfg_attr(test, derive(Serialize))]
+pub struct RelationshipActivityTimestamps {
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        with = "crate::util::datetime_opt"
+    )]
+    pub start: Option<chrono::DateTime<chrono::Utc>>,
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        with = "crate::util::datetime_opt"
+    )]
+    pub end: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+use crate::activity;
+
+#[derive(Default, Clone, Debug, Deserialize)]
+#[cfg_attr(test, derive(Serialize))]
+pub struct RelationshipActivity {
+    /// The unique identifier for the activity
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
+    /// The timestamp the activity was created
+    #[serde(skip_serializing, with = "crate::util::datetime_opt")]
+    pub created_at: Option<chrono::DateTime<chrono::Utc>>,
+    /// The player's current party status
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub state: Option<String>,
+    /// What the player is currently doing
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub details: Option<String>,
+    /// Helps create elapsed/remaining timestamps on a player's profile
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timestamps: Option<RelationshipActivityTimestamps>,
+    /// Assets to display on the player's profile
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub assets: Option<activity::Assets>,
+    /// Information about the player's party
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub party: Option<activity::Party>,
+    /// Secret passwords for joining and spectating the player's game
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub secrets: Option<activity::Secrets>,
+    #[serde(rename = "type")]
+    pub kind: activity::ActivityKind,
+    #[serde(default)]
+    /// Whether this activity is an instanced context, like a match
+    pub instance: bool,
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(test, derive(Serialize))]
+pub struct RelationshipPresence {
+    pub status: RelationStatus,
+    pub activity: Option<RelationshipActivity>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(test, derive(Serialize))]
 pub struct Relationship {
     /// What kind of relationship it is
     #[serde(rename = "type")]
     pub kind: RelationKind,
-    #[serde(deserialize_with = "crate::user::de_user")]
     pub user: User,
     pub presence: RelationshipPresence,
 }
@@ -67,5 +126,61 @@ impl crate::Discord {
         handle_response!(rx, crate::proto::Command::GetRelationships { relationships } => {
             Ok(relationships)
         })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::{activity, proto::event};
+
+    #[test]
+    fn serde() {
+        let eve = event::EventFrame {
+            inner: event::Event::RelationshipUpdate(std::sync::Arc::new(Relationship {
+                kind: RelationKind::Friend,
+                user: User {
+                    id: crate::types::Snowflake(123414231424),
+                    username: "name".to_owned(),
+                    discriminator: Some(52),
+                    avatar: Some(crate::user::Avatar([
+                        0xf6, 0x2f, 0x2a, 0x75, 0x5c, 0xb1, 0x8c, 0x94, 0xdc, 0x5c, 0xda, 0x94,
+                        0x44, 0x10, 0x24, 0xf1,
+                    ])),
+                    is_bot: false,
+                },
+                presence: RelationshipPresence {
+                    status: RelationStatus::DoNotDisturb,
+                    activity: Some(RelationshipActivity {
+                        session_id: Some("6bb1ddaea510750e905615286709d632".to_owned()),
+                        created_at: Some(crate::util::timestamp(1628629162447)),
+                        assets: Some(activity::Assets {
+                            large_image: Some(
+                                "spotify:ab67616d0000b273d1e326d10706f3d8562d77f8".to_owned(),
+                            ),
+                            large_text: Some("To the Moon".to_owned()),
+                            small_image: None,
+                            small_text: None,
+                        }),
+                        details: Some("To the Moon".to_owned()),
+                        instance: false,
+                        kind: activity::ActivityKind::Listening,
+                        party: Some(activity::Party {
+                            id: "spotify: 216453179196440576".to_owned(),
+                            size: None,
+                            privacy: None,
+                        }),
+                        secrets: None,
+                        state: Some("Rob Curly".to_owned()),
+                        timestamps: Some(RelationshipActivityTimestamps {
+                            start: Some(crate::util::timestamp(1628629161811)),
+                            end: Some(crate::util::timestamp(1628629327961)),
+                        }),
+                    }),
+                },
+            })),
+        };
+
+        insta::assert_json_snapshot!(eve);
     }
 }

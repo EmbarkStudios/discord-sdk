@@ -11,6 +11,7 @@ pub(crate) struct CloseFrame<'frame> {
 }
 
 #[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(Serialize))]
 pub struct ErrorPayload {
     code: Option<u32>,
     message: Option<String>,
@@ -28,6 +29,7 @@ pub(crate) struct ErrorPayloadStack<'stack> {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(test, derive(Serialize))]
 #[serde(rename_all = "snake_case")]
 pub enum Environment {
     Production,
@@ -35,6 +37,7 @@ pub enum Environment {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(test, derive(Serialize))]
 pub struct DiscordConfig {
     /// The CDN host that can be used to retrieve user avatars
     pub cdn_host: String,

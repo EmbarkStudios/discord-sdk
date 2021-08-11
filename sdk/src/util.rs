@@ -13,14 +13,6 @@ pub(crate) mod string {
 
     use serde::{de, Deserialize, Deserializer};
 
-    // pub fn serialize<T, S>(value: &T, serializer: S) -> Result<S::Ok, S::Error>
-    // where
-    //     T: Display,
-    //     S: Serializer,
-    // {
-    //     serializer.collect_str(value)
-    // }
-
     pub fn deserialize<'de, T, D>(deserializer: D) -> Result<T, D::Error>
     where
         T: FromStr,
@@ -31,14 +23,6 @@ pub(crate) mod string {
             .parse()
             .map_err(de::Error::custom)
     }
-
-    // pub fn serialize_opt<T, S>(value: &Option<T>, serializer: S) -> Result<S::Ok, S::Error>
-    // where
-    //     T: Display,
-    //     S: Serializer,
-    // {
-    //     serializer.collect_str(value.as_ref().unwrap())
-    // }
 
     pub fn deserialize_opt<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
     where
@@ -53,10 +37,10 @@ pub(crate) mod string {
     }
 }
 
-pub(crate) mod timestamp {
-    use serde::{de, Deserialize, Deserializer};
+pub(crate) mod datetime_opt {
+    use serde::{de, Deserialize, Deserializer, Serializer};
 
-    pub fn deserialize_opt<'de, D>(
+    pub fn deserialize<'de, D>(
         deserializer: D,
     ) -> Result<Option<chrono::DateTime<chrono::Utc>>, D::Error>
     where
@@ -65,12 +49,33 @@ pub(crate) mod timestamp {
         match Option::<&'de str>::deserialize(deserializer)? {
             Some(s) => {
                 use chrono::TimeZone;
-                let ts = s.parse().map_err(de::Error::custom)?;
-                let dt = chrono::Utc.timestamp(ts, 0);
+                let ts: i64 = s.parse().map_err(de::Error::custom)?;
+                let dt = chrono::Utc.timestamp_millis(ts);
 
                 Ok(Some(dt))
             }
             None => Ok(None),
         }
     }
+
+    #[allow(dead_code)]
+    pub fn serialize<S>(
+        value: &Option<chrono::DateTime<chrono::Utc>>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match value {
+            Some(dt) => serializer.collect_str(&(dt.timestamp_millis())),
+            None => serializer.serialize_none(),
+        }
+    }
+}
+
+#[cfg(test)]
+#[inline]
+pub(crate) fn timestamp(ts: i64) -> chrono::DateTime<chrono::Utc> {
+    use chrono::TimeZone;
+    chrono::Utc.timestamp_millis(ts)
 }
