@@ -89,6 +89,7 @@ pub use error::{DiscordApiErr, DiscordErr, Error};
 pub use handler::{handlers, wheel, DiscordHandler, DiscordMsg};
 pub use proto::event::Event;
 use proto::{Command, CommandKind};
+pub use types::Snowflake;
 pub type AppId = i64;
 
 pub use crossbeam_channel as cc;
