@@ -12,7 +12,7 @@ pub type Metadata = std::collections::BTreeMap<String, String>;
 pub type LobbyId = Snowflake;
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Copy, Clone)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "kebab-case")]
 pub enum Region {
     Amsterdam,
     Brazil,
@@ -37,6 +37,8 @@ pub enum Region {
     VipAmsterdam,
     VipUsEast,
     VipUsWest,
+    // This isn't in the list returned by /voice/regions but...
+    StPete,
 }
 
 #[derive(Copy, Clone, Debug, Serialize_repr, Deserialize_repr)]
