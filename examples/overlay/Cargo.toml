@@ -9,6 +9,6 @@ test = false
 doctest = false
 
 [dev-dependencies]
-eframe = "0.12"
+eframe = "0.13"
 examples-shared = { path = "../../examples-shared" }
 parking_lot = "0.11"

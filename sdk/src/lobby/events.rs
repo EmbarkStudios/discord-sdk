@@ -53,7 +53,7 @@ pub enum LobbyEvent {
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onmemberupdate)
     MemberUpdate(MemberEvent),
-    /// Event fired when a lobby is deleted.
+    /// Event fired when a lobby is deleted, or when the current user disconnects.
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onlobbydelete)
     Delete {
