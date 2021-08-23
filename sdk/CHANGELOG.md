@@ -4,8 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+<!-- markdownlint-disable blanks-around-headers no-duplicate-header blanks-around-lists -->
+
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Changed
+- [PR#16](https://github.com/EmbarkStudios/discord-sdk/pull/16) exposed the `Snowflake` type publicly, as there are cases where you might need to use it directly as it is the underlying type for most of the unique identifiers throught the SDK.
+
+### Fixed
+- [PR#16](https://github.com/EmbarkStudios/discord-sdk/pull/16) fixed regions to use `kebab-case` instead of `snake_case`, and add the `st-pete` region, which is apparently a voice region that can be used, but isn't listed in `/voice/regions`.
+
 ## [0.1.2] - 2021-08-11
 ### Fixed
 - [PR#14](https://github.com/EmbarkStudios/discord-sdk/pull/14) fixed an issue where the `RELATIONSHIP_UPDATE` event actually uses stringized timestamps in the activity information, rather than the normal `i64` timestamps in eg `SET_ACTIVITY`.
