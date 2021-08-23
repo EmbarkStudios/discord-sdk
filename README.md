@@ -22,6 +22,7 @@ An (unofficial) open source Rust implementation of the [Discord Game SDK](https:
 - You like to live dangerously (though this library does also have some automated tests!).
 
 ## Implemented Features
+
 ### TODO: [Achievements](https://discord.com/developers/docs/game-sdk/achievements)
 
 ### [Activities (Rich Presence)](https://discord.com/developers/docs/game-sdk/activities)
@@ -144,7 +145,7 @@ cargo test --features local-testing test_activity
 
 ### Lobbies
 
-**NOTE**: This a does not test the lobby `search` functionality as that command seems to be non-functioning and never returns results, even if the [REST](https://discord.com/developers/docs/game-sdk/lobbies#create-lobby-search) equivalent does return the expected results.
+**NOTE**: This does not test the lobby `search` functionality as that command seems to be non-functioning and never returns results, even if the [REST](https://discord.com/developers/docs/game-sdk/lobbies#create-lobby-search) equivalent does return the expected results.
 
 ```sh
 cargo test --features local-testing test_lobbies
@@ -165,8 +166,8 @@ Any contribution intentionally submitted for inclusion in an Embark Studios proj
 
 This contribution is dual licensed under EITHER OF
 
-* Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>
-* MIT license ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
+- Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
 
 at your option.
 
