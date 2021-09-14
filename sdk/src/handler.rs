@@ -334,6 +334,7 @@ fn subscribe_task(subs: crate::Subscriptions, stx: cc::Sender<Option<Vec<u8>>>) 
             .chain(lobby)
             .chain(user)
             .chain(relations)
+            .chain(voice)
             .for_each(|kind| {
                 push(*kind);
             });
