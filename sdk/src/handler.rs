@@ -324,6 +324,12 @@ fn subscribe_task(subs: crate::Subscriptions, stx: cc::Sender<Option<Vec<u8>>>) 
             [].iter()
         };
 
+        let voice = if subs.contains(crate::Subscriptions::VOICE) {
+            [EventKind::VoiceSettingsUpdate].iter()
+        } else {
+            [].iter()
+        };
+
         activity
             .chain(lobby)
             .chain(user)

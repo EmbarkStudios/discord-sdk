@@ -5,6 +5,7 @@ use crate::{
     relations::events as relation_events,
     types::ErrorPayload,
     user::events as user_events,
+    voice::events::VoiceSettingsUpdateEvent,
 };
 use serde::{Deserialize, Serialize};
 
@@ -34,6 +35,9 @@ pub(crate) enum EventKind {
     OverlayUpdate,
 
     RelationshipUpdate,
+
+    #[serde(rename = "VOICE_SETTINGS_UPDATE_2")]
+    VoiceSettingsUpdate,
 }
 
 /// An event sent from Discord to notify us of some kind of state change or
@@ -131,6 +135,10 @@ pub enum Event {
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/relationships#onrelationshipupdate)
     RelationshipUpdate(std::sync::Arc<crate::relations::Relationship>),
+
+    /// Event fired when any voice settings are changed
+    #[serde(rename = "VOICE_SETTINGS_UPDATE_2")]
+    VoiceSettingsUpdate(VoiceSettingsUpdateEvent),
 }
 
 /// An event sent from Discord as JSON.
@@ -158,6 +166,7 @@ pub enum ClassifiedEvent {
     Activity(activity_events::ActivityEvent),
     Overlay(overlay_events::OverlayEvent),
     Relations(relation_events::RelationshipEvent),
+    Voice(VoiceSettingsUpdateEvent),
 }
 
 impl From<Event> for ClassifiedEvent {
@@ -201,6 +210,9 @@ impl From<Event> for ClassifiedEvent {
             Event::RelationshipUpdate(relationship) => {
                 Self::Relations(relation_events::RelationshipEvent::Update(relationship))
             }
+
+            // Voice
+            Event::VoiceSettingsUpdate(voice) => Self::Voice(voice),
 
             // Errors get converted before this path
             Event::Error(_) => unreachable!(),

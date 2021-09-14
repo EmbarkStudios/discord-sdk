@@ -84,6 +84,7 @@ pub mod registration;
 pub mod relations;
 mod types;
 pub mod user;
+pub mod voice;
 
 pub use error::{DiscordApiErr, DiscordErr, Error};
 pub use handler::{handlers, wheel, DiscordHandler, DiscordMsg};
@@ -127,8 +128,9 @@ bitflags::bitflags! {
         const USER = 0x4;
         const OVERLAY = 0x8;
         const RELATIONSHIPS = 0x10;
+        const VOICE = 0x20;
 
-        const ALL = Self::ACTIVITY.bits | Self::LOBBY.bits | Self::USER.bits | Self::OVERLAY.bits | Self::RELATIONSHIPS.bits;
+        const ALL = Self::ACTIVITY.bits | Self::LOBBY.bits | Self::USER.bits | Self::OVERLAY.bits | Self::RELATIONSHIPS.bits | Self::VOICE.bits;
     }
 }
 
