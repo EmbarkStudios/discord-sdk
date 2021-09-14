@@ -1,3 +1,5 @@
+#![allow(unused_must_use)]
+
 use std::ops::Deref;
 
 use dgs::Discord;
