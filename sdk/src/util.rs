@@ -18,7 +18,7 @@ pub(crate) mod string {
         D: Deserializer<'de>,
     {
         let s = <&'de str>::deserialize(deserializer)?;
-        Ok(s.parse().map_err(de::Error::custom)?)
+        s.parse().map_err(de::Error::custom)
     }
 
     pub fn deserialize_opt<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
@@ -27,10 +27,10 @@ pub(crate) mod string {
         T::Err: Display,
         D: Deserializer<'de>,
     {
-        match Option::<&'de str>::deserialize(deserializer)? {
-            Some(s) => Ok(Some(s.parse().map_err(de::Error::custom)?)),
-            None => Ok(None),
-        }
+        Ok(match Option::<&'de str>::deserialize(deserializer)? {
+            Some(s) => Some(s.parse().map_err(de::Error::custom)?),
+            None => None,
+        })
     }
 }
 
@@ -43,16 +43,16 @@ pub(crate) mod datetime_opt {
     where
         D: Deserializer<'de>,
     {
-        match Option::<&'de str>::deserialize(deserializer)? {
+        Ok(match Option::<&'de str>::deserialize(deserializer)? {
             Some(s) => {
                 use chrono::TimeZone;
                 let ts: i64 = s.parse().map_err(de::Error::custom)?;
                 let dt = chrono::Utc.timestamp_millis(ts);
 
-                Ok(Some(dt))
+                Some(dt)
             }
-            None => Ok(None),
-        }
+            None => None,
+        })
     }
 
     #[allow(dead_code)]
