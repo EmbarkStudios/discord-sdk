@@ -1,3 +1,5 @@
+#![allow(unused_must_use)]
+
 use std::ops::Deref;
 
 use dgs::Discord;
@@ -17,6 +19,44 @@ enum LobbyCmd {
     Delete,
     Disconnect,
     Sequence,
+}
+
+#[derive(StructOpt)]
+enum InputMode {
+    Activity,
+    Ptt,
+}
+
+#[derive(StructOpt)]
+enum VoiceCmd {
+    GetInputMode,
+    SetInputMode(InputMode),
+    GetSelfMute,
+    SetSelfMute {
+        #[structopt(long)]
+        mute: bool,
+    },
+    GetSelfDeaf,
+    SetSelfDeaf {
+        #[structopt(long)]
+        deaf: bool,
+    },
+    GetLocalMute {
+        user: i64,
+    },
+    SetLocalMute {
+        #[structopt(long)]
+        mute: bool,
+        user: i64,
+    },
+    GetLocalVolume {
+        user: i64,
+    },
+    SetLocalVolume {
+        #[structopt(long, default_value = "100")]
+        val: u8,
+        user: i64,
+    },
 }
 
 #[derive(StructOpt)]
@@ -52,6 +92,7 @@ enum Cmd {
     Activity(ActivityCmd),
     Overlay(OverlayCmd),
     Relations(RelationCmd),
+    Voice(VoiceCmd),
 }
 
 fn main() {
@@ -164,6 +205,50 @@ fn main() {
                             });
 
                             wait!();
+                        }
+                    },
+                    Cmd::Voice(voice) => match voice {
+                        VoiceCmd::GetInputMode => {
+                            dbg!(discord.input_mode());
+                        }
+                        VoiceCmd::SetInputMode(im) => {
+                            let ttx = tx.clone();
+
+                            let im = match im {
+                                InputMode::Activity => dgs::InputMode::voice_activity(),
+                                InputMode::Ptt => dgs::InputMode::push_to_talk("ctrl + a"),
+                            };
+
+                            discord.set_input_mode(im, move |_, res| {
+                                dbg!(res);
+                                ttx.send(()).unwrap();
+                            });
+
+                            wait!();
+                        }
+                        VoiceCmd::GetSelfMute => {
+                            dbg!(discord.self_muted());
+                        }
+                        VoiceCmd::SetSelfMute { mute } => {
+                            dbg!(discord.set_self_mute(mute));
+                        }
+                        VoiceCmd::GetSelfDeaf => {
+                            dbg!(discord.self_deafened());
+                        }
+                        VoiceCmd::SetSelfDeaf { deaf } => {
+                            dbg!(discord.set_self_deaf(deaf));
+                        }
+                        VoiceCmd::GetLocalMute { user } => {
+                            dbg!(discord.local_muted(user));
+                        }
+                        VoiceCmd::SetLocalMute { mute, user } => {
+                            dbg!(discord.set_local_mute(user, mute));
+                        }
+                        VoiceCmd::GetLocalVolume { user } => {
+                            dbg!(discord.local_volume(user));
+                        }
+                        VoiceCmd::SetLocalVolume { val, user } => {
+                            dbg!(discord.set_local_volume(user, val));
                         }
                     },
                     Cmd::Activity(activity) => match activity {

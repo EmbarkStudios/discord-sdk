@@ -57,6 +57,13 @@ pub enum CommandKind {
 
     /// RPC sent to retrieve the full list of a user's active relationships
     GetRelationships,
+
+    /// RPC sent to change the local user's voice settings
+    #[serde(rename = "SET_VOICE_SETTINGS_2")]
+    SetVoiceSettings,
+    /// RPC sent to change the local settings for another user
+    #[serde(rename = "SET_USER_VOICE_SETTINGS_2")]
+    SetUserVoiceSettings,
 }
 
 /// The response to an RPC sent by us.
@@ -93,6 +100,11 @@ pub(crate) enum Command {
     GetRelationships {
         relationships: Vec<crate::relations::Relationship>,
     },
+
+    #[serde(rename = "SET_VOICE_SETTINGS_2")]
+    SetVoiceSettings,
+    #[serde(rename = "SET_USER_VOICE_SETTINGS_2")]
+    SetUserVoiceSettings,
 }
 
 /// An RPC sent from Discord as JSON, in response to an RPC sent by us.

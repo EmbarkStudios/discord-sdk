@@ -50,6 +50,18 @@ An (unofficial) open source Rust implementation of the [Discord Game SDK](https:
 
 ### ⚠️ [Voice](https://discord.com/developers/docs/game-sdk/discord-voice)
 
+#### Commands
+
+- [x] [Set Input Mode](https://discord.com/developers/docs/game-sdk/discord-voice#setinputmode)
+- [x] [Set Self Mute](https://discord.com/developers/docs/game-sdk/discord-voice#setselfmute)
+- [x] [Set Self Deaf](https://discord.com/developers/docs/game-sdk/discord-voice#setselfdeaf)
+- [x] [Set Local Mute](https://discord.com/developers/docs/game-sdk/discord-voice#setlocalmute)
+- [x] [Set Local Volume](https://discord.com/developers/docs/game-sdk/discord-voice#setlocalvolume)
+
+#### Events
+
+- [x] `VOICE_SETTINGS_UPDATE_2` - Undocumented, but this event is fired for all voice settings changes, _except_ for "Set Local Volume".
+
 ### TODO: [Images](https://discord.com/developers/docs/game-sdk/images)
 
 ### ⚠️ [Lobbies](https://discord.com/developers/docs/game-sdk/lobbies)
