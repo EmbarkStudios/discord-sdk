@@ -8,11 +8,59 @@ use serde::{Deserialize, Serialize};
 pub mod events;
 pub mod state;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "SCREAMING_SNAKE_CASE")]
+#[derive(Clone, Debug)]
 pub enum InputMode {
     VoiceActivity,
     PushToTalk { shortcut: String },
+}
+
+impl<'de> Deserialize<'de> for InputMode {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct Inner<'stack> {
+            #[serde(rename = "type")]
+            kind: &'stack str,
+            shortcut: Option<&'stack str>,
+        }
+
+        let inner = Inner::<'de>::deserialize(deserializer)?;
+
+        Ok(match inner.kind {
+            "VOICE_ACTIVITY" => Self::VoiceActivity,
+            "PUSH_TO_TALK" => Self::PushToTalk {
+                shortcut: inner.shortcut.unwrap_or_default().to_owned(),
+            },
+            other => return Err(de::Error::custom(format!("unknown variant '{}'", other))),
+        })
+    }
+}
+
+impl Serialize for InputMode {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: ser::Serializer,
+    {
+        use ser::SerializeStruct;
+
+        let mut state = serializer.serialize_struct("InputMode", 2)?;
+
+        match self {
+            Self::VoiceActivity => {
+                state.serialize_field("type", "VOICE_ACTIVITY")?;
+                // HACK: Discord will give errors if shortcut is not supplied AND it's a string AND it's not empty :(
+                state.serialize_field("shortcut", "_")?;
+            }
+            Self::PushToTalk { shortcut } => {
+                state.serialize_field("type", "PUSH_TO_TALK")?;
+                state.serialize_field("shortcut", shortcut)?;
+            }
+        }
+
+        state.end()
+    }
 }
 
 impl crate::Discord {
