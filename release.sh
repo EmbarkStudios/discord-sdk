@@ -3,7 +3,7 @@ set -e
 
 root=$(git rev-parse --show-toplevel)
 
-cargo release --manifest-path "$root/sdk/Cargo.toml" --skip-push "$1"
+cargo release --execute --manifest-path "$root/sdk/Cargo.toml" --skip-push "$1"
 
 tag=$(git tag --points-at HEAD)
 
