@@ -3,7 +3,7 @@ use crate::{
     user::UserId,
     Error,
 };
-use serde::{Deserialize, Serialize};
+use serde::{de, ser, Deserialize, Serialize};
 
 pub mod events;
 pub mod state;
@@ -144,23 +144,25 @@ impl crate::Discord {
     /// be a boosted volume level from default.
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/discord-voice#setlocalvolume)
-    pub async fn voice_set_user_volume(&self, user: UserId, volume: u8) -> Result<(), Error> {
+    pub async fn voice_set_user_volume(&self, user: UserId, volume: u8) -> Result<u8, Error> {
         #[derive(Serialize)]
         struct UserVolume {
             user_id: UserId,
             volume: u8,
         }
 
+        let volume = std::cmp::min(volume, 200);
+
         let rx = self.send_rpc(
             CommandKind::SetUserVoiceSettings,
             UserVolume {
                 user_id: user,
-                volume: std::cmp::min(volume, 200),
+                volume,
             },
         )?;
 
         handle_response!(rx, Command::SetUserVoiceSettings => {
-            Ok(())
+            Ok(volume)
         })
     }
 }
