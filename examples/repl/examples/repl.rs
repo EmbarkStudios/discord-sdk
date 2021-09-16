@@ -5,7 +5,7 @@ use examples_shared::{
 };
 use structopt::StructOpt;
 
-use ds::{activity, lobby, overlay, relations};
+use ds::{activity, lobby, overlay, relations, voice};
 
 #[derive(StructOpt, Debug)]
 enum LobbyCmd {
@@ -91,11 +91,41 @@ enum RelationsCmd {
 }
 
 #[derive(StructOpt, Debug)]
+enum InputMode {
+    Activity,
+    Ptt { shortcut: String },
+}
+
+#[derive(StructOpt, Debug)]
+enum VoiceCmd {
+    SetInputMode(InputMode),
+    Mute {
+        #[structopt(long)]
+        mute: bool,
+    },
+    Deafen {
+        #[structopt(long)]
+        deaf: bool,
+    },
+    MuteUser {
+        #[structopt(long)]
+        mute: bool,
+        user: u64,
+    },
+    SetUserVolume {
+        user: u64,
+        volume: u8,
+    },
+    Print,
+}
+
+#[derive(StructOpt, Debug)]
 enum Cmd {
     Lobby(LobbyCmd),
     Activity(ActivityCmd),
     Overlay(OverlayCmd),
     Relations(RelationsCmd),
+    Voice(VoiceCmd),
     Exit,
 }
 
@@ -141,6 +171,16 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     });
 
+    let mut voice_events = wheel.voice().0;
+    let voice_state = std::sync::Arc::new(voice::state::VoiceState::new());
+    let vs = voice_state.clone();
+    tokio::task::spawn(async move {
+        while let Ok(ve) = voice_events.recv().await {
+            tracing::info!(event = ?ve, "voice event");
+            vs.on_event(ve);
+        }
+    });
+
     let relationships = discord.get_relationships().await?;
 
     let mut rl_events = wheel.relationships().0;
@@ -160,6 +200,7 @@ async fn main() -> Result<(), anyhow::Error> {
         created_lobby: Option<lobby::Lobby>,
         lobbies: std::sync::Arc<lobby::state::LobbyStates>,
         relationships: std::sync::Arc<relations::state::Relationships>,
+        voice: std::sync::Arc<voice::state::VoiceState>,
     }
 
     let mut repl_state = ReplState {
@@ -168,6 +209,7 @@ async fn main() -> Result<(), anyhow::Error> {
         created_lobby: None,
         lobbies: lobby_states,
         relationships,
+        voice: voice_state,
     };
 
     let mut line = String::new();
@@ -363,6 +405,48 @@ async fn main() -> Result<(), anyhow::Error> {
                         Cmd::Relations(rc) => match rc {
                             RelationsCmd::Print => {
                                 tracing::info!("{:#?}", state.relationships.relationships.read());
+                            }
+                        },
+                        Cmd::Voice(vc) => match vc {
+                            VoiceCmd::SetInputMode(kind) => match kind {
+                                InputMode::Activity => {
+                                    discord
+                                        .voice_set_input_mode(voice::InputMode::VoiceActivity)
+                                        .await?
+                                }
+                                InputMode::Ptt { shortcut } => {
+                                    discord
+                                        .voice_set_input_mode(voice::InputMode::PushToTalk {
+                                            shortcut: shortcut.clone(),
+                                        })
+                                        .await?
+                                }
+                            },
+                            VoiceCmd::Mute { mute } => {
+                                discord.voice_mute(*mute).await?;
+                            }
+                            VoiceCmd::Deafen { deaf } => {
+                                discord.voice_deafen(*deaf).await?;
+                            }
+                            VoiceCmd::MuteUser { mute, user } => {
+                                discord.voice_mute_user(ds::Snowflake(*user), *mute).await?;
+                            }
+                            VoiceCmd::SetUserVolume { user, volume } => {
+                                let user_id = ds::Snowflake(*user);
+                                let volume =
+                                    discord.voice_set_user_volume(user_id, *volume).await?;
+
+                                // Discord doesn't send an event for this, so we need to sync it ourselves
+                                *state
+                                    .voice
+                                    .state
+                                    .write()
+                                    .local_volumes
+                                    .entry(user_id)
+                                    .or_insert(100) = volume;
+                            }
+                            VoiceCmd::Print => {
+                                tracing::info!("{:#?}", state.voice.state.read());
                             }
                         },
                     }
