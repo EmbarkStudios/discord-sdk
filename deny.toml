@@ -11,35 +11,25 @@ targets = [
 vulnerability = "deny"
 unmaintained = "warn"
 yanked = "deny"
-ignore = [
-    # dev only xcb
-    "RUSTSEC-2020-0097",
-    "RUSTSEC-2021-0019",
-]
+ignore = []
 
 [bans]
 multiple-versions = "deny"
-deny = [
-]
+deny = []
 skip = [
+    # clap uses an old version
+    { name = "ansi_term", version = "=0.11.0" },
 ]
-skip-tree = [
-    # winit/glium/etc pull in a ridiculous amount of duplicates that I
-    # really, REALLY don't care about, especially since they are for 1 example
-    { name = "example-overlay" },
-]
+skip-tree = []
 
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"
 required-git-spec = "rev"
-allow-git = [
-]
+allow-git = []
 
 [sources.allow-org]
-github = [
-    "EmbarkStudios",
-]
+github = ["EmbarkStudios"]
 
 [licenses]
 private = { ignore = true, registries = ["embark"] }
@@ -52,10 +42,4 @@ allow = [
     "BSD-3-Clause", # https://tldrlegal.com/license/bsd-3-clause-license-(revised)
     "MIT",          # https://tldrlegal.com/license/mit-license
 ]
-exceptions = [
-    { allow = ["ISC"], name = "libloading" },
-
-    { allow = ["BSL-1.0"], name = "lazy-bytes-cast" },
-
-    { allow = ["CC0-1.0"], name = "osmesa-sys" },
-]
+exceptions = []
