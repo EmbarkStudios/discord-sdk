@@ -29,6 +29,7 @@ pub enum Region {
     Singapore,
     Southafrica,
     SouthKorea,
+    Stockholm,
     Sydney,
     UsCentral,
     UsEast,

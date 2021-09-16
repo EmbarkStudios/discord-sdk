@@ -101,7 +101,9 @@ pub(crate) enum Command {
         relationships: Vec<crate::relations::Relationship>,
     },
 
+    #[serde(rename = "SET_VOICE_SETTINGS_2")]
     SetVoiceSettings,
+    #[serde(rename = "SET_USER_VOICE_SETTINGS_2")]
     SetUserVoiceSettings,
 }
 
