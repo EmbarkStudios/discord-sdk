@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.1.4] - 2021-09-16
+### Added
+- [PR#17](https://github.com/EmbarkStudios/discord-sdk/pull/17) added [Voice](https://discord.com/developers/docs/game-sdk/discord-voice) support. Even though this functionality is going to be deprecated and removed by Discord, it was fairly easy to implement so there is little harm.
+
 ## [0.1.3] - 2021-08-23
 ### Changed
 - [PR#16](https://github.com/EmbarkStudios/discord-sdk/pull/16) exposed the `Snowflake` type publicly, as there are cases where you might need to use it directly as it is the underlying type for most of the unique identifiers throught the SDK.
@@ -34,7 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial crate squat
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/discord-sdk/compare/0.1.3...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/discord-sdk/compare/0.1.4...HEAD
+[0.1.4]: https://github.com/EmbarkStudios/discord-sdk/compare/0.1.3...0.1.4
 [0.1.3]: https://github.com/EmbarkStudios/discord-sdk/compare/0.1.2...0.1.3
 [0.1.2]: https://github.com/EmbarkStudios/discord-sdk/compare/0.1.1...0.1.2
 [0.1.1]: https://github.com/EmbarkStudios/discord-sdk/compare/0.1.0...0.1.1
