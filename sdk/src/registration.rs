@@ -5,6 +5,14 @@
 #[cfg_attr(target_os = "linux", path = "registration/linux.rs")]
 #[cfg_attr(target_os = "windows", path = "registration/windows.rs")]
 #[cfg_attr(target_os = "macos", path = "registration/mac.rs")]
+#[cfg_attr(
+    all(
+        not(target_os = "linux"),
+        not(target_os = "windows"),
+        not(target_os = "macos")
+    ),
+    path = "registration/empty.rs"
+)]
 mod registrar;
 
 use crate::Error;
