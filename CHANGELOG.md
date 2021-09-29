@@ -1,4 +1,5 @@
 # Changelog
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
@@ -8,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.2.0] - 2021-09-29
+### Changed
+- [PR#18](https://github.com/EmbarkStudios/discord-sdk/pull/18/files#diff-63746a89ece2f6f7c95c84f99391f83a19ba24ca9825c5d993708ff60069a298) combined the `voice_mute` and `voice_deafen` RPCs into a single `update_voice_settings` RPC.
+
+### Fixed
+- [PR#18](https://github.com/EmbarkStudios/discord-sdk/pull/18/files#diff-9a3c0ce63dd7af5cdc3486b6e68ea8c098d855cfeccd72c6c66c69a069b31022) fixed the deserialization of activity timestamps in relationship update events.
+- [PR#18](https://github.com/EmbarkStudios/discord-sdk/pull/18/files#diff-30f15d38fcb3d2d1714f1501c5520975acb8e72cf1ca62b7ca024fdb2a7267fb) fixed the `disconnect_lobby_voice` method to actually send the correct RPC.
+
 ## [0.1.4] - 2021-09-16
 ### Added
 - [PR#17](https://github.com/EmbarkStudios/discord-sdk/pull/17) added [Voice](https://discord.com/developers/docs/game-sdk/discord-voice) support. Even though this functionality is going to be deprecated and removed by Discord, it was fairly easy to implement so there is little harm.
@@ -38,7 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial crate squat
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/discord-sdk/compare/0.1.4...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/discord-sdk/compare/0.2.0...HEAD
+[0.2.0]: https://github.com/EmbarkStudios/discord-sdk/compare/0.1.4...0.2.0
 [0.1.4]: https://github.com/EmbarkStudios/discord-sdk/compare/0.1.3...0.1.4
 [0.1.3]: https://github.com/EmbarkStudios/discord-sdk/compare/0.1.2...0.1.3
 [0.1.2]: https://github.com/EmbarkStudios/discord-sdk/compare/0.1.1...0.1.2
