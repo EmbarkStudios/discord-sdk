@@ -461,9 +461,9 @@ impl crate::Discord {
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#disconnectvoice)
     pub async fn disconnect_lobby_voice(&self, id: LobbyId) -> Result<(), Error> {
-        let rx = self.send_rpc(CommandKind::ConnectToLobbyVoice, LobbyAction { id })?;
+        let rx = self.send_rpc(CommandKind::DisconnectFromLobbyVoice, LobbyAction { id })?;
 
-        handle_response!(rx, Command::ConnectToLobbyVoice => {
+        handle_response!(rx, Command::DisconnectFromLobbyVoice => {
             Ok(())
         })
     }

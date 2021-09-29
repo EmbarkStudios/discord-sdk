@@ -99,11 +99,9 @@ enum InputMode {
 #[derive(StructOpt, Debug)]
 enum VoiceCmd {
     SetInputMode(InputMode),
-    Mute {
+    Update {
         #[structopt(long)]
         mute: bool,
-    },
-    Deafen {
         #[structopt(long)]
         deaf: bool,
     },
@@ -422,11 +420,13 @@ async fn main() -> Result<(), anyhow::Error> {
                                         .await?
                                 }
                             },
-                            VoiceCmd::Mute { mute } => {
-                                discord.voice_mute(*mute).await?;
-                            }
-                            VoiceCmd::Deafen { deaf } => {
-                                discord.voice_deafen(*deaf).await?;
+                            VoiceCmd::Update { mute, deaf } => {
+                                discord
+                                    .update_voice_settings(voice::VoiceSettingsSelf {
+                                        self_mute: *mute,
+                                        self_deaf: *deaf,
+                                    })
+                                    .await?;
                             }
                             VoiceCmd::MuteUser { mute, user } => {
                                 discord.voice_mute_user(ds::Snowflake(*user), *mute).await?;

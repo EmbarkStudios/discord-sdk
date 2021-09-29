@@ -63,33 +63,23 @@ impl Serialize for InputMode {
     }
 }
 
-impl crate::Discord {
+/// Settings for the local user's voice connection
+#[derive(Serialize)]
+pub struct VoiceSettingsSelf {
     /// Mutes or unmutes the currently connected user.
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/discord-voice#setselfmute)
-    pub async fn voice_mute(&self, mute: bool) -> Result<(), Error> {
-        #[derive(Serialize)]
-        struct Mute {
-            self_mute: bool,
-        }
-
-        let rx = self.send_rpc(CommandKind::SetVoiceSettings, Mute { self_mute: mute })?;
-
-        handle_response!(rx, Command::SetVoiceSettings => {
-            Ok(())
-        })
-    }
-
+    pub self_mute: bool,
     /// Deafens or undefeans the currently connected user.
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/discord-voice#setselfdeaf)
-    pub async fn voice_deafen(&self, deaf: bool) -> Result<(), Error> {
-        #[derive(Serialize)]
-        struct Deafen {
-            self_deaf: bool,
-        }
+    pub self_deaf: bool,
+}
 
-        let rx = self.send_rpc(CommandKind::SetVoiceSettings, Deafen { self_deaf: deaf })?;
+impl crate::Discord {
+    /// Changes whether the local user is muted and/or deafened
+    pub async fn update_voice_settings(&self, settings: VoiceSettingsSelf) -> Result<(), Error> {
+        let rx = self.send_rpc(CommandKind::SetVoiceSettings, settings)?;
 
         handle_response!(rx, Command::SetVoiceSettings => {
             Ok(())

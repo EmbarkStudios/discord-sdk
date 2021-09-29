@@ -193,11 +193,14 @@ impl Discord {
 
     /// Serializes an RPC ands adds a notification oneshot so that we can be notified
     /// with the response from Discord
-    fn send_rpc<T: serde::Serialize>(
+    fn send_rpc<Msg>(
         &self,
         cmd: CommandKind,
-        msg: T,
-    ) -> Result<tokio::sync::oneshot::Receiver<Result<Command, Error>>, Error> {
+        msg: Msg,
+    ) -> Result<tokio::sync::oneshot::Receiver<Result<Command, Error>>, Error>
+    where
+        Msg: serde::Serialize,
+    {
         // Increment the nonce, we use this in the handler task to pair the response
         // to this request
         let nonce = self
