@@ -260,7 +260,7 @@ pub struct Secrets {
     pub spectate: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct ActivityArgs {
     pid: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -283,7 +283,7 @@ impl From<ActivityBuilder> for ActivityArgs {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct ActivityBuilder {
     pub(crate) inner: ActivityArgs,
 }
