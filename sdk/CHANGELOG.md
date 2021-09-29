@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- [PR#19](https://github.com/EmbarkStudios/discord-sdk/pull/19) added an empty `register_app` implementation so that discord-sdk can be compiled for most targets, even if it doesn't actually function on them.
+
 ## [0.2.0] - 2021-09-29
 ### Changed
 - [PR#18](https://github.com/EmbarkStudios/discord-sdk/pull/18/files#diff-63746a89ece2f6f7c95c84f99391f83a19ba24ca9825c5d993708ff60069a298) combined the `voice_mute` and `voice_deafen` RPCs into a single `update_voice_settings` RPC.
