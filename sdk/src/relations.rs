@@ -49,12 +49,14 @@ pub enum RelationStatus {
 pub struct RelationshipActivityTimestamps {
     #[serde(
         skip_serializing_if = "Option::is_none",
-        with = "crate::util::datetime_opt"
+        with = "crate::util::datetime_opt",
+        default
     )]
     pub start: Option<chrono::DateTime<chrono::Utc>>,
     #[serde(
         skip_serializing_if = "Option::is_none",
-        with = "crate::util::datetime_opt"
+        with = "crate::util::datetime_opt",
+        default
     )]
     pub end: Option<chrono::DateTime<chrono::Utc>>,
 }
@@ -133,6 +135,16 @@ impl crate::Discord {
 mod test {
     use super::*;
     use crate::{activity, proto::event};
+
+    #[test]
+    fn deserializes() {
+        let event = r#"{"cmd":"DISPATCH","data":{"type":1,"user":{"id":"682969165652689005","username":"jake.shadle","discriminator":"7557","avatar":"15bbd75c8ee6610d045852e7ea998a35","bot":false,"flags":0,"premium_type":0},"presence":{"status":"online","activity":{"created_at":"1632819046295","id":"e92ece5eb4ce629","name":"Ark [dev debug]","timestamps":{"start":"1632819046199"},"type":0}}},"evt":"RELATIONSHIP_UPDATE","nonce":null}"#;
+
+        let update: crate::proto::event::EventFrame =
+            serde_json::from_str(event).expect("failed to deserialize");
+
+        insta::assert_json_snapshot!(update);
+    }
 
     #[test]
     fn serde() {

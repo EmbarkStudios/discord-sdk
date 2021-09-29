@@ -1,0 +1,28 @@
+---
+source: sdk/src/relations.rs
+expression: update
+
+---
+{
+  "evt": "RELATIONSHIP_UPDATE",
+  "data": {
+    "type": 1,
+    "user": {
+      "id": "682969165652689005",
+      "username": "jake.shadle",
+      "discriminator": "7557",
+      "avatar": "15bbd75c8ee6610d045852e7ea998a35",
+      "bot": false
+    },
+    "presence": {
+      "status": "online",
+      "activity": {
+        "timestamps": {
+          "start": "1632819046199"
+        },
+        "type": 0,
+        "instance": false
+      }
+    }
+  }
+}
