@@ -16,10 +16,7 @@ ignore = []
 [bans]
 multiple-versions = "deny"
 deny = []
-skip = [
-    # clap uses an old version
-    { name = "ansi_term", version = "=0.11.0" },
-]
+skip = []
 skip-tree = []
 
 [sources]
@@ -38,8 +35,7 @@ allow-osi-fsf-free = "neither"
 confidence-threshold = 0.92
 copyleft = "deny"
 allow = [
-    "Apache-2.0",   # https://tldrlegal.com/license/apache-license-2.0-(apache-2.0)
-    "BSD-3-Clause", # https://tldrlegal.com/license/bsd-3-clause-license-(revised)
-    "MIT",          # https://tldrlegal.com/license/mit-license
+    "Apache-2.0", # https://tldrlegal.com/license/apache-license-2.0-(apache-2.0)
+    "MIT",        # https://tldrlegal.com/license/mit-license
 ]
 exceptions = []

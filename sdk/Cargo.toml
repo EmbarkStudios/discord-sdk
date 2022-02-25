@@ -33,7 +33,7 @@ chrono = "0.4"
 crossbeam-channel = "0.5"
 num-traits = "0.2"
 # Better sync primitives
-parking_lot = "0.11"
+parking_lot = "0.12"
 serde = { version = "1.0", features = ["derive", "rc"] }
 # All message payloads are JSON
 serde_json = "1.0"
@@ -65,5 +65,5 @@ winreg = "0.10"
 
 [dev-dependencies]
 # So tests can print out tracing
-tracing-subscriber = "0.2"
+tracing-subscriber = "0.3"
 insta = "1.7"
