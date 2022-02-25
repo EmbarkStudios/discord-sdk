@@ -52,13 +52,13 @@ pub struct RelationshipActivityTimestamps {
         with = "crate::util::datetime_opt",
         default
     )]
-    pub start: Option<chrono::DateTime<chrono::Utc>>,
+    pub start: Option<time::OffsetDateTime>,
     #[serde(
         skip_serializing_if = "Option::is_none",
         with = "crate::util::datetime_opt",
         default
     )]
-    pub end: Option<chrono::DateTime<chrono::Utc>>,
+    pub end: Option<time::OffsetDateTime>,
 }
 
 use crate::activity;
@@ -71,7 +71,7 @@ pub struct RelationshipActivity {
     pub session_id: Option<String>,
     /// The timestamp the activity was created
     #[serde(skip_serializing, with = "crate::util::datetime_opt")]
-    pub created_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub created_at: Option<time::OffsetDateTime>,
     /// The player's current party status
     #[serde(skip_serializing_if = "Option::is_none")]
     pub state: Option<String>,

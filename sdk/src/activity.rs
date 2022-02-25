@@ -43,9 +43,9 @@ impl IntoTimestamp for std::time::SystemTime {
     }
 }
 
-impl<Tz: chrono::TimeZone> IntoTimestamp for chrono::DateTime<Tz> {
+impl IntoTimestamp for time::OffsetDateTime {
     fn into_timestamp(self) -> i64 {
-        self.timestamp()
+        self.unix_timestamp()
     }
 }
 
@@ -230,13 +230,14 @@ pub struct InviteActivity {
     pub session_id: String,
     /// The timestamp the activity was created
     #[serde(skip_serializing, with = "crate::util::datetime_opt")]
-    pub created_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub created_at: Option<time::OffsetDateTime>,
     /// The usual activity data
     #[serde(flatten)]
     pub details: Activity,
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct SetActivity {
     #[serde(flatten)]
     activity: Activity,

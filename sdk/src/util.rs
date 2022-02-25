@@ -37,19 +37,17 @@ pub(crate) mod string {
 pub(crate) mod datetime_opt {
     use serde::{de, Deserialize, Deserializer, Serializer};
 
-    pub fn deserialize<'de, D>(
-        deserializer: D,
-    ) -> Result<Option<chrono::DateTime<chrono::Utc>>, D::Error>
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<time::OffsetDateTime>, D::Error>
     where
         D: Deserializer<'de>,
     {
         Ok(match Option::<&'de str>::deserialize(deserializer)? {
             Some(s) => {
-                use chrono::TimeZone;
                 let ts: i64 = s.parse().map_err(de::Error::custom)?;
-                let dt = chrono::Utc.timestamp_millis(ts);
-
-                Some(dt)
+                Some(
+                    time::OffsetDateTime::from_unix_timestamp_nanos(ts as i128 * 1000000)
+                        .map_err(de::Error::custom)?,
+                )
             }
             None => None,
         })
@@ -57,14 +55,14 @@ pub(crate) mod datetime_opt {
 
     #[allow(dead_code)]
     pub fn serialize<S>(
-        value: &Option<chrono::DateTime<chrono::Utc>>,
+        value: &Option<time::OffsetDateTime>,
         serializer: S,
     ) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         match value {
-            Some(dt) => serializer.collect_str(&(dt.timestamp_millis())),
+            Some(dt) => serializer.collect_str(&(dt.unix_timestamp_nanos() / 1000000)),
             None => serializer.serialize_none(),
         }
     }
@@ -72,7 +70,6 @@ pub(crate) mod datetime_opt {
 
 #[cfg(test)]
 #[inline]
-pub(crate) fn timestamp(ts: i64) -> chrono::DateTime<chrono::Utc> {
-    use chrono::TimeZone;
-    chrono::Utc.timestamp_millis(ts)
+pub(crate) fn timestamp(ts: i64) -> time::OffsetDateTime {
+    time::OffsetDateTime::from_unix_timestamp_nanos(ts as i128 * 1000000).unwrap()
 }
