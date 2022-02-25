@@ -237,6 +237,7 @@ pub struct InviteActivity {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct SetActivity {
     #[serde(flatten)]
     activity: Activity,

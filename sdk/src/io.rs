@@ -283,81 +283,78 @@ pub(crate) fn start_io_task(app_id: i64) -> IoTask {
 
                 if ready.is_readable() {
                     'read: loop {
-                        let mut buf = match &valid_header {
+                        let buf = match &valid_header {
                             Some((_, len)) => &mut data_buf[data_cursor..*len as usize],
                             None => &mut header_buf.buf[header_buf.cursor..],
                         };
 
-                        match stream.try_read(&mut buf) {
+                        match stream.try_read(buf) {
                             Ok(n) => {
                                 if n == 0 {
                                     return Err(Error::NoConnection);
                                 }
 
-                                match valid_header {
-                                    Some((op, len)) => {
-                                        data_cursor += n;
-                                        let len = len as usize;
-                                        if data_cursor == len {
-                                            match op {
-                                                OpCode::Close => {
-                                                    let close: types::CloseFrame<'_> =
-                                                        serde_json::from_slice(&data_buf)?;
+                                if let Some((op, len)) = valid_header {
+                                    data_cursor += n;
+                                    let len = len as usize;
+                                    if data_cursor == len {
+                                        match op {
+                                            OpCode::Close => {
+                                                let close: types::CloseFrame<'_> =
+                                                    serde_json::from_slice(&data_buf)?;
 
-                                                    tracing::debug!("Received close request from Discord: {:?} - {:?}", close.code, close.message);
-                                                    return Err(Error::Close(
-                                                        close
-                                                            .message
-                                                            .unwrap_or("unknown reason")
-                                                            .to_owned(),
-                                                    ));
-                                                }
-                                                OpCode::Frame => {
-                                                    if rtx
-                                                        .send(IoMsg::Frame(data_buf.clone()))
-                                                        .await
-                                                        .is_err()
-                                                    {
-                                                        tracing::error!(
-                                                            "Dropped RPC as queue is too full"
-                                                        );
-                                                    }
-                                                }
-                                                OpCode::Ping => {
-                                                    let pong_response =
-                                                        make_message(OpCode::Pong, &data_buf);
-                                                    tracing::debug!(
-                                                        "Responding to PING request from Discord"
+                                                tracing::debug!("Received close request from Discord: {:?} - {:?}", close.code, close.message);
+                                                return Err(Error::Close(
+                                                    close
+                                                        .message
+                                                        .unwrap_or("unknown reason")
+                                                        .to_owned(),
+                                                ));
+                                            }
+                                            OpCode::Frame => {
+                                                if rtx
+                                                    .send(IoMsg::Frame(data_buf.clone()))
+                                                    .await
+                                                    .is_err()
+                                                {
+                                                    tracing::error!(
+                                                        "Dropped RPC as queue is too full"
                                                     );
-                                                    stx.send(Some(pong_response))?;
-                                                }
-                                                OpCode::Pong => {
-                                                    tracing::debug!(
-                                                        "Received PONG response from Discord"
-                                                    );
-                                                }
-                                                OpCode::Handshake => {
-                                                    tracing::error!("Received a HANDSHAKE request from Discord, the stream is likely corrupt");
-                                                    return Err(Error::CorruptConnection);
                                                 }
                                             }
-
-                                            valid_header = None;
-                                            header_buf.cursor = 0;
-                                            data_buf.clear();
-                                            data_cursor = 0;
+                                            OpCode::Ping => {
+                                                let pong_response =
+                                                    make_message(OpCode::Pong, &data_buf);
+                                                tracing::debug!(
+                                                    "Responding to PING request from Discord"
+                                                );
+                                                stx.send(Some(pong_response))?;
+                                            }
+                                            OpCode::Pong => {
+                                                tracing::debug!(
+                                                    "Received PONG response from Discord"
+                                                );
+                                            }
+                                            OpCode::Handshake => {
+                                                tracing::error!("Received a HANDSHAKE request from Discord, the stream is likely corrupt");
+                                                return Err(Error::CorruptConnection);
+                                            }
                                         }
+
+                                        valid_header = None;
+                                        header_buf.cursor = 0;
+                                        data_buf.clear();
+                                        data_cursor = 0;
                                     }
-                                    None => {
-                                        header_buf.cursor += n;
-                                        if header_buf.cursor == header_buf.buf.len() {
-                                            let header = parse_frame_header(header_buf.buf)?;
+                                } else {
+                                    header_buf.cursor += n;
+                                    if header_buf.cursor == header_buf.buf.len() {
+                                        let header = parse_frame_header(header_buf.buf)?;
 
-                                            // Ensure the data buffer has enough space
-                                            data_buf.resize(header.1 as usize, 0);
+                                        // Ensure the data buffer has enough space
+                                        data_buf.resize(header.1 as usize, 0);
 
-                                            valid_header = Some(header);
-                                        }
+                                        valid_header = Some(header);
                                     }
                                 }
                             }
@@ -374,12 +371,11 @@ pub(crate) fn start_io_task(app_id: i64) -> IoTask {
                 if ready.is_writable() {
                     if top_message.is_none() {
                         if let Ok(msg) = srx.try_recv() {
-                            top_message = match msg {
-                                Some(msg) => Some((msg, 0)),
-                                None => {
-                                    tracing::debug!("Discord I/O thread received shutdown signal");
-                                    return Ok(());
-                                }
+                            top_message = if let Some(msg) = msg {
+                                Some((msg, 0))
+                            } else {
+                                tracing::debug!("Discord I/O thread received shutdown signal");
+                                return Ok(());
                             };
                         }
                     }

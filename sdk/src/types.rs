@@ -12,6 +12,7 @@ pub(crate) struct CloseFrame<'frame> {
 
 #[derive(Deserialize, Debug)]
 #[cfg_attr(test, derive(Serialize))]
+#[allow(dead_code)]
 pub struct ErrorPayload {
     code: Option<u32>,
     message: Option<String>,
