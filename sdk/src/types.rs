@@ -57,13 +57,11 @@ pub struct DiscordConfig {
 pub struct Snowflake(pub u64);
 
 impl Snowflake {
-    pub fn timestamp(self) -> chrono::DateTime<chrono::Utc> {
+    pub fn timestamp(self) -> time::OffsetDateTime {
         let millis = self.0.overflowing_shr(22).0 + 1420070400000;
-        let ts_seconds = millis / 1000;
-        let ts_nanos = (millis % 1000) as u32 * 1000000;
+        let nanos = millis as i128 * 1000000;
 
-        use chrono::TimeZone;
-        chrono::Utc.timestamp(ts_seconds as i64, ts_nanos)
+        time::OffsetDateTime::from_unix_timestamp_nanos(nanos).unwrap()
     }
 }
 

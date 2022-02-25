@@ -29,7 +29,6 @@ async-trait = "0.1"
 # in base64
 base64 = "0.13"
 bitflags = "1.2"
-chrono = "0.4"
 crossbeam-channel = "0.5"
 num-traits = "0.2"
 # Better sync primitives
@@ -39,6 +38,8 @@ serde = { version = "1.0", features = ["derive", "rc"] }
 serde_json = "1.0"
 # Some enums are encoded as numbers in JSON
 serde_repr = "0.1"
+# Datetime types
+time = "0.3"
 # Error helpers
 thiserror = "1.0"
 # Tokio is used to drive the IPC I/O as well as provide the core of the overall
