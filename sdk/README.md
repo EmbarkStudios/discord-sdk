@@ -1,4 +1,8 @@
-# ⚔️ discord-sdk
+<div align="center">
+
+# `⚔️ discord-sdk`
+
+**An (unofficial) open source Rust implementation of the [Discord Game SDK](https://discord.com/developers/docs/game-sdk/sdk-starter-guide).**
 
 [![Embark](https://img.shields.io/badge/embark-open%20source-blueviolet.svg)](https://embark.dev)
 [![Embark](https://img.shields.io/badge/discord-ark-%237289da.svg?logo=discord)](https://discord.gg/dAuKfZS)
@@ -7,7 +11,7 @@
 [![dependency status](https://deps.rs/repo/github/EmbarkStudios/discord-sdk/status.svg)](https://deps.rs/repo/github/EmbarkStudios/discord-sdk)
 [![Build status](https://github.com/EmbarkStudios/discord-sdk/workflows/CI/badge.svg)](https://github.com/EmbarkStudios/discord-sdk/actions)
 
-An (unofficial) open source Rust implementation of the [Discord Game SDK](https://discord.com/developers/docs/game-sdk/sdk-starter-guide).
+</div>
 
 ## Why not use this?
 
