@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
 ## [0.3.0] - 2022-03-02
+### Changed
+- [PR#20](https://github.com/EmbarkStudios/discord-sdk/pull/20) replaced `chrono` in favor of the (maintained) `time` crate.
+- [PR#20](https://github.com/EmbarkStudios/discord-sdk/pull/20) updated `tracing-subscriber` and `parking_lot`.
+
 ## [0.2.1] - 2021-09-29
 ### Added
 - [PR#19](https://github.com/EmbarkStudios/discord-sdk/pull/19) added an empty `register_app` implementation so that discord-sdk can be compiled for most targets, even if it doesn't actually function on them.
