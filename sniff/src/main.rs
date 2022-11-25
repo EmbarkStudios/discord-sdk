@@ -1,17 +1,17 @@
 #![allow(unused_must_use, clippy::dbg_macro)]
 
+use clap::{Parser, Subcommand};
 use dgs::Discord;
 use discord_game_sdk as dgs;
-use structopt::StructOpt;
 
-#[derive(StructOpt)]
+#[derive(Subcommand)]
 enum LobbyCmd {
     Create {
-        #[structopt(long)]
+        #[clap(long)]
         capacity: Option<u32>,
     },
     Update {
-        #[structopt(long, default_value = "4")]
+        #[clap(long, default_value = "4")]
         capacity: u32,
     },
     Delete,
@@ -19,31 +19,33 @@ enum LobbyCmd {
     Sequence,
 }
 
-#[derive(StructOpt)]
+#[derive(Copy, Clone, clap::ValueEnum)]
 enum InputMode {
     Activity,
     Ptt,
 }
 
-#[derive(StructOpt)]
+#[derive(Subcommand)]
 enum VoiceCmd {
     GetInputMode,
-    SetInputMode(InputMode),
+    SetInputMode {
+        mode: InputMode,
+    },
     GetSelfMute,
     SetSelfMute {
-        #[structopt(long)]
+        #[clap(long)]
         mute: bool,
     },
     GetSelfDeaf,
     SetSelfDeaf {
-        #[structopt(long)]
+        #[clap(long)]
         deaf: bool,
     },
     GetLocalMute {
         user: i64,
     },
     SetLocalMute {
-        #[structopt(long)]
+        #[clap(long)]
         mute: bool,
         user: i64,
     },
@@ -51,26 +53,26 @@ enum VoiceCmd {
         user: i64,
     },
     SetLocalVolume {
-        #[structopt(long, default_value = "100")]
+        #[clap(long, default_value = "100")]
         val: u8,
         user: i64,
     },
 }
 
-#[derive(StructOpt)]
+#[derive(Subcommand)]
 enum ActivityCmd {
     Invite { id: String },
     Accept,
     UpdatePresence,
 }
 
-#[derive(StructOpt)]
+#[derive(Subcommand)]
 enum OverlayCmd {
     Enabled,
     Open,
     Close,
     Invite {
-        #[structopt(long)]
+        #[clap(long)]
         join: bool,
     },
     Voice,
@@ -79,18 +81,39 @@ enum OverlayCmd {
     },
 }
 
-#[derive(StructOpt)]
+#[derive(Subcommand)]
 enum RelationCmd {
     List,
 }
 
-#[derive(StructOpt)]
-enum Cmd {
-    Lobby(LobbyCmd),
-    Activity(ActivityCmd),
-    Overlay(OverlayCmd),
-    Relations(RelationCmd),
-    Voice(VoiceCmd),
+#[derive(Subcommand)]
+enum Commands {
+    Lobby {
+        #[clap(subcommand)]
+        cmd: LobbyCmd,
+    },
+    Activity {
+        #[clap(subcommand)]
+        cmd: ActivityCmd,
+    },
+    Overlay {
+        #[clap(subcommand)]
+        cmd: OverlayCmd,
+    },
+    Relations {
+        #[clap(subcommand)]
+        cmd: RelationCmd,
+    },
+    Voice {
+        #[clap(subcommand)]
+        cmd: VoiceCmd,
+    },
+}
+
+#[derive(Parser)]
+struct Cmd {
+    #[clap(subcommand)]
+    cmd: Commands,
 }
 
 fn main() {
@@ -126,9 +149,9 @@ fn main() {
                 continue;
             }
 
-            match Cmd::from_iter_safe(std::iter::once("discord").chain(line.split(' '))) {
-                Ok(cmd) => match cmd {
-                    Cmd::Relations(rc) => {
+            match Cmd::try_parse_from(std::iter::once("discord").chain(line.split(' '))) {
+                Ok(cmd) => match cmd.cmd {
+                    Commands::Relations { cmd: rc } => {
                         match rc {
                             RelationCmd::List => {
                                 //let ttx = tx.clone();
@@ -145,7 +168,7 @@ fn main() {
                             }
                         }
                     }
-                    Cmd::Overlay(overlay) => match overlay {
+                    Commands::Overlay { cmd: overlay } => match overlay {
                         OverlayCmd::Enabled => {
                             //let ttx = tx.clone();
                             dbg!(discord.overlay_enabled());
@@ -205,11 +228,11 @@ fn main() {
                             wait!();
                         }
                     },
-                    Cmd::Voice(voice) => match voice {
+                    Commands::Voice { cmd: voice } => match voice {
                         VoiceCmd::GetInputMode => {
                             dbg!(discord.input_mode());
                         }
-                        VoiceCmd::SetInputMode(im) => {
+                        VoiceCmd::SetInputMode { mode: im } => {
                             let ttx = tx.clone();
 
                             let im = match im {
@@ -249,7 +272,7 @@ fn main() {
                             dbg!(discord.set_local_volume(user, val));
                         }
                     },
-                    Cmd::Activity(activity) => match activity {
+                    Commands::Activity { cmd: activity } => match activity {
                         ActivityCmd::UpdatePresence => {
                             let mut activity = dgs::Activity::empty();
 
@@ -312,7 +335,7 @@ fn main() {
                             wait!();
                         }
                     },
-                    Cmd::Lobby(lobby) => match lobby {
+                    Commands::Lobby { cmd: lobby } => match lobby {
                         LobbyCmd::Create { capacity } => {
                             {
                                 let mut lock = current_lobby.lock().unwrap();

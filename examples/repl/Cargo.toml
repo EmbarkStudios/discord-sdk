@@ -9,6 +9,6 @@ test = false
 doctest = false
 
 [dev-dependencies]
+clap = { version = "4.0", features = ["derive"] }
 examples-shared = { path = "../../examples-shared" }
 shell-words = "1.0"
-structopt = "0.3"

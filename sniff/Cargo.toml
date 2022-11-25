@@ -6,5 +6,5 @@ edition = "2018"
 publish = false
 
 [dependencies]
+clap = { version = "4.0", features = ["derive"] }
 discord_game_sdk = { git = "https://github.com/EmbarkStudios/discord_game_sdk", rev = "3ba5ef9" }
-structopt = "0.3"
