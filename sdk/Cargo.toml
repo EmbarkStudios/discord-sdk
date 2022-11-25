@@ -67,4 +67,4 @@ winreg = "0.10"
 [dev-dependencies]
 # So tests can print out tracing
 tracing-subscriber = "0.3"
-insta = "1.7"
+insta = { version = "1.21", features = ["json"]}
