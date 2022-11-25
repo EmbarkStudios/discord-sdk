@@ -410,14 +410,14 @@ async fn main() -> Result<(), anyhow::Error> {
                                 InputMode::Activity => {
                                     discord
                                         .voice_set_input_mode(voice::InputMode::VoiceActivity)
-                                        .await?
+                                        .await?;
                                 }
                                 InputMode::Ptt { shortcut } => {
                                     discord
                                         .voice_set_input_mode(voice::InputMode::PushToTalk {
                                             shortcut: shortcut.clone(),
                                         })
-                                        .await?
+                                        .await?;
                                 }
                             },
                             VoiceCmd::Update { mute, deaf } => {
