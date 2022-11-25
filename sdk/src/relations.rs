@@ -8,7 +8,7 @@ use serde::Deserialize;
 #[cfg(test)]
 use serde::Serialize;
 
-#[derive(Copy, Clone, Debug, PartialEq, serde_repr::Deserialize_repr)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, serde_repr::Deserialize_repr)]
 #[cfg_attr(test, derive(serde_repr::Serialize_repr))]
 #[repr(u8)]
 pub enum RelationKind {
@@ -26,7 +26,7 @@ pub enum RelationKind {
     Implicit = 5,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Deserialize)]
 #[cfg_attr(test, derive(Serialize))]
 #[serde(rename_all = "snake_case")]
 pub enum RelationStatus {

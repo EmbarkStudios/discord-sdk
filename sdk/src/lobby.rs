@@ -11,7 +11,7 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 pub type Metadata = std::collections::BTreeMap<String, String>;
 pub type LobbyId = Snowflake;
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, Copy, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Copy, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub enum Region {
     Amsterdam,
@@ -267,7 +267,7 @@ impl<'s> std::convert::TryFrom<&'s str> for ConnectLobby {
 }
 
 /// A message sent by a user to a lobby
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum LobbyMessage {
     Binary(Vec<u8>),
     Text(String),
@@ -291,7 +291,7 @@ impl Serialize for LobbyMessage {
         match self {
             Self::Binary(bin) => {
                 let mut data = String::from("data:text/plain;base64,");
-                base64::encode_config_buf(&bin, base64::STANDARD_NO_PAD, &mut data);
+                base64::encode_config_buf(bin, base64::STANDARD_NO_PAD, &mut data);
 
                 serializer.serialize_str(&data)
             }

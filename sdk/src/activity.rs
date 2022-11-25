@@ -22,7 +22,7 @@ pub struct Party {
 }
 
 #[derive(
-    serde_repr::Serialize_repr, serde_repr::Deserialize_repr, PartialEq, Debug, Copy, Clone,
+    serde_repr::Serialize_repr, serde_repr::Deserialize_repr, PartialEq, Eq, Debug, Copy, Clone,
 )]
 #[repr(u8)]
 pub enum PartyPrivacy {
@@ -120,7 +120,7 @@ pub struct Timestamps {
 }
 
 #[derive(
-    serde_repr::Serialize_repr, serde_repr::Deserialize_repr, PartialEq, Debug, Copy, Clone,
+    serde_repr::Serialize_repr, serde_repr::Deserialize_repr, PartialEq, Eq, Debug, Copy, Clone,
 )]
 #[repr(u8)]
 pub enum ActivityKind {
@@ -142,7 +142,7 @@ impl Default for ActivityKind {
 ///
 /// [API docs](https://discord.com/developers/docs/game-sdk/activities#data-models-activityactiontype-enum)
 #[derive(
-    serde_repr::Serialize_repr, serde_repr::Deserialize_repr, PartialEq, Debug, Copy, Clone,
+    serde_repr::Serialize_repr, serde_repr::Deserialize_repr, PartialEq, Eq, Debug, Copy, Clone,
 )]
 #[repr(u8)]
 pub enum ActivityActionKind {
@@ -175,7 +175,7 @@ pub struct ActivityInvite {
 /// on the wire is actually just a different command kind.
 ///
 /// [API docs](https://discord.com/developers/docs/game-sdk/activities#data-models-activityjoinrequestreply-enum)
-#[derive(PartialEq, Debug, Copy, Clone)]
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum JoinRequestReply {
     /// Rejects the join request
     No,

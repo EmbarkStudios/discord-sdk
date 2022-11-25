@@ -1,19 +1,17 @@
-#![allow(unused_must_use)]
+#![allow(unused_must_use, clippy::dbg_macro)]
 
-use std::ops::Deref;
-
+use clap::{Parser, Subcommand};
 use dgs::Discord;
 use discord_game_sdk as dgs;
-use structopt::StructOpt;
 
-#[derive(StructOpt)]
+#[derive(Subcommand)]
 enum LobbyCmd {
     Create {
-        #[structopt(long)]
+        #[clap(long)]
         capacity: Option<u32>,
     },
     Update {
-        #[structopt(long, default_value = "4")]
+        #[clap(long, default_value = "4")]
         capacity: u32,
     },
     Delete,
@@ -21,31 +19,33 @@ enum LobbyCmd {
     Sequence,
 }
 
-#[derive(StructOpt)]
+#[derive(Copy, Clone, clap::ValueEnum)]
 enum InputMode {
     Activity,
     Ptt,
 }
 
-#[derive(StructOpt)]
+#[derive(Subcommand)]
 enum VoiceCmd {
     GetInputMode,
-    SetInputMode(InputMode),
+    SetInputMode {
+        mode: InputMode,
+    },
     GetSelfMute,
     SetSelfMute {
-        #[structopt(long)]
+        #[clap(long)]
         mute: bool,
     },
     GetSelfDeaf,
     SetSelfDeaf {
-        #[structopt(long)]
+        #[clap(long)]
         deaf: bool,
     },
     GetLocalMute {
         user: i64,
     },
     SetLocalMute {
-        #[structopt(long)]
+        #[clap(long)]
         mute: bool,
         user: i64,
     },
@@ -53,26 +53,26 @@ enum VoiceCmd {
         user: i64,
     },
     SetLocalVolume {
-        #[structopt(long, default_value = "100")]
+        #[clap(long, default_value = "100")]
         val: u8,
         user: i64,
     },
 }
 
-#[derive(StructOpt)]
+#[derive(Subcommand)]
 enum ActivityCmd {
     Invite { id: String },
     Accept,
     UpdatePresence,
 }
 
-#[derive(StructOpt)]
+#[derive(Subcommand)]
 enum OverlayCmd {
     Enabled,
     Open,
     Close,
     Invite {
-        #[structopt(long)]
+        #[clap(long)]
         join: bool,
     },
     Voice,
@@ -81,18 +81,39 @@ enum OverlayCmd {
     },
 }
 
-#[derive(StructOpt)]
+#[derive(Subcommand)]
 enum RelationCmd {
     List,
 }
 
-#[derive(StructOpt)]
-enum Cmd {
-    Lobby(LobbyCmd),
-    Activity(ActivityCmd),
-    Overlay(OverlayCmd),
-    Relations(RelationCmd),
-    Voice(VoiceCmd),
+#[derive(Subcommand)]
+enum Commands {
+    Lobby {
+        #[clap(subcommand)]
+        cmd: LobbyCmd,
+    },
+    Activity {
+        #[clap(subcommand)]
+        cmd: ActivityCmd,
+    },
+    Overlay {
+        #[clap(subcommand)]
+        cmd: OverlayCmd,
+    },
+    Relations {
+        #[clap(subcommand)]
+        cmd: RelationCmd,
+    },
+    Voice {
+        #[clap(subcommand)]
+        cmd: VoiceCmd,
+    },
+}
+
+#[derive(Parser)]
+struct Cmd {
+    #[clap(subcommand)]
+    cmd: Commands,
 }
 
 fn main() {
@@ -128,9 +149,9 @@ fn main() {
                 continue;
             }
 
-            match Cmd::from_iter_safe(std::iter::once("discord").chain(line.split(' '))) {
-                Ok(cmd) => match cmd {
-                    Cmd::Relations(rc) => {
+            match Cmd::try_parse_from(std::iter::once("discord").chain(line.split(' '))) {
+                Ok(cmd) => match cmd.cmd {
+                    Commands::Relations { cmd: rc } => {
                         match rc {
                             RelationCmd::List => {
                                 //let ttx = tx.clone();
@@ -147,7 +168,7 @@ fn main() {
                             }
                         }
                     }
-                    Cmd::Overlay(overlay) => match overlay {
+                    Commands::Overlay { cmd: overlay } => match overlay {
                         OverlayCmd::Enabled => {
                             //let ttx = tx.clone();
                             dbg!(discord.overlay_enabled());
@@ -207,11 +228,11 @@ fn main() {
                             wait!();
                         }
                     },
-                    Cmd::Voice(voice) => match voice {
+                    Commands::Voice { cmd: voice } => match voice {
                         VoiceCmd::GetInputMode => {
                             dbg!(discord.input_mode());
                         }
-                        VoiceCmd::SetInputMode(im) => {
+                        VoiceCmd::SetInputMode { mode: im } => {
                             let ttx = tx.clone();
 
                             let im = match im {
@@ -251,7 +272,7 @@ fn main() {
                             dbg!(discord.set_local_volume(user, val));
                         }
                     },
-                    Cmd::Activity(activity) => match activity {
+                    Commands::Activity { cmd: activity } => match activity {
                         ActivityCmd::UpdatePresence => {
                             let mut activity = dgs::Activity::empty();
 
@@ -314,19 +335,19 @@ fn main() {
                             wait!();
                         }
                     },
-                    Cmd::Lobby(lobby) => match lobby {
+                    Commands::Lobby { cmd: lobby } => match lobby {
                         LobbyCmd::Create { capacity } => {
                             {
                                 let mut lock = current_lobby.lock().unwrap();
 
-                                if let Some(cl) = lock.deref() {
+                                if let Some(cl) = &*lock {
                                     let current_lobby = current_lobby.clone();
                                     discord.delete_lobby(*cl, move |_discord, res| match res {
                                         Ok(_) => {
                                             println!(
                                                 "DELETED LOBBY {:?}",
                                                 current_lobby.lock().unwrap()
-                                            )
+                                            );
                                         }
                                         Err(e) => eprintln!("FAILED TO DELETE LOBBY: {}", e),
                                     });
@@ -355,7 +376,7 @@ fn main() {
                             let lobby_id = {
                                 let lock = current_lobby.lock().unwrap();
 
-                                match lock.deref() {
+                                match &*lock {
                                     Some(id) => *id,
                                     None => {
                                         eprintln!("LOBBY NOT CREATED");
@@ -391,7 +412,7 @@ fn main() {
                         LobbyCmd::Delete => {
                             let mut lock = current_lobby.lock().unwrap();
 
-                            if let Some(cl) = lock.deref() {
+                            if let Some(cl) = &*lock {
                                 let current_lobby = current_lobby.clone();
 
                                 discord.delete_lobby(*cl, move |_discord, res| match res {
@@ -399,7 +420,7 @@ fn main() {
                                         println!(
                                             "DELETED LOBBY {:?}",
                                             current_lobby.lock().unwrap()
-                                        )
+                                        );
                                     }
                                     Err(e) => eprintln!("FAILED TO DELETE LOBBY: {}", e),
                                 });
@@ -410,7 +431,7 @@ fn main() {
                         LobbyCmd::Disconnect => {
                             let lock = current_lobby.lock().unwrap();
 
-                            if let Some(cl) = lock.deref() {
+                            if let Some(cl) = &*lock {
                                 let current_lobby = current_lobby.clone();
                                 discord.disconnect_lobby(*cl, move |_discord, res| match res {
                                     Ok(_) => println!(
@@ -616,21 +637,21 @@ struct Printer;
 impl dgs::EventHandler for Printer {
     fn on_user_achievement_update(
         &mut self,
-        _discord: &Discord<Self>,
+        _discord: &Discord<'_, Self>,
         user_achievement: &dgs::UserAchievement,
     ) {
         println!("USER ACHIEVEMENT UPDATE: {:#?}", user_achievement);
     }
 
-    fn on_activity_join(&mut self, _discord: &Discord<Self>, secret: &str) {
+    fn on_activity_join(&mut self, _discord: &Discord<'_, Self>, secret: &str) {
         println!("ACTIVITY JOIN: {}", secret);
     }
 
-    fn on_activity_spectate(&mut self, _discord: &Discord<Self>, secret: &str) {
+    fn on_activity_spectate(&mut self, _discord: &Discord<'_, Self>, secret: &str) {
         println!("ACTIVITY SPECTATE: {}", secret);
     }
 
-    fn on_activity_join_request(&mut self, discord: &Discord<Self>, user: &dgs::User) {
+    fn on_activity_join_request(&mut self, discord: &Discord<'_, Self>, user: &dgs::User) {
         println!("ACTIVITY JOIN REQUEST: {:#?}", user);
 
         discord.send_request_reply(user.id(), dgs::RequestReply::No, |_, res| {
@@ -640,7 +661,7 @@ impl dgs::EventHandler for Printer {
 
     fn on_activity_invite(
         &mut self,
-        _discord: &Discord<Self>,
+        _discord: &Discord<'_, Self>,
         kind: dgs::Action,
         user: &dgs::User,
         activity: &dgs::Activity,
@@ -651,17 +672,22 @@ impl dgs::EventHandler for Printer {
         );
     }
 
-    fn on_lobby_update(&mut self, _discord: &Discord<Self>, lobby_id: dgs::LobbyID) {
+    fn on_lobby_update(&mut self, _discord: &Discord<'_, Self>, lobby_id: dgs::LobbyID) {
         println!("LOBBY UPDATE: {}", lobby_id);
     }
 
-    fn on_lobby_delete(&mut self, _discord: &Discord<Self>, lobby_id: dgs::LobbyID, reason: u32) {
+    fn on_lobby_delete(
+        &mut self,
+        _discord: &Discord<'_, Self>,
+        lobby_id: dgs::LobbyID,
+        reason: u32,
+    ) {
         println!("LOBBY DELETED: {} - {}", lobby_id, reason);
     }
 
     fn on_member_connect(
         &mut self,
-        _discord: &Discord<Self>,
+        _discord: &Discord<'_, Self>,
         lobby_id: dgs::LobbyID,
         member_id: dgs::UserID,
     ) {
@@ -670,7 +696,7 @@ impl dgs::EventHandler for Printer {
 
     fn on_member_update(
         &mut self,
-        _discord: &Discord<Self>,
+        _discord: &Discord<'_, Self>,
         lobby_id: dgs::LobbyID,
         member_id: dgs::UserID,
     ) {
@@ -679,7 +705,7 @@ impl dgs::EventHandler for Printer {
 
     fn on_member_disconnect(
         &mut self,
-        _discord: &Discord<Self>,
+        _discord: &Discord<'_, Self>,
         lobby_id: dgs::LobbyID,
         member_id: dgs::UserID,
     ) {
@@ -688,7 +714,7 @@ impl dgs::EventHandler for Printer {
 
     fn on_lobby_message(
         &mut self,
-        _discord: &Discord<Self>,
+        _discord: &Discord<'_, Self>,
         lobby_id: dgs::LobbyID,
         member_id: dgs::UserID,
         data: &[u8],
@@ -701,7 +727,7 @@ impl dgs::EventHandler for Printer {
         );
     }
 
-    fn on_current_user_update(&mut self, _discord: &Discord<Self>) {
+    fn on_current_user_update(&mut self, _discord: &Discord<'_, Self>) {
         println!("USER UPDATED",);
     }
 

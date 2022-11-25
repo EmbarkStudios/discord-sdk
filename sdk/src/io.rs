@@ -148,20 +148,21 @@ pub(crate) fn start_io_task(app_id: i64) -> IoTask {
         }
 
         // Discord just uses a simple round robin approach to finding a socket to use
-        let mut socket_path = format!("{}/discord-ipc-0", tmp_path);
+        let mut socket_path = format!("{}/app/com.discordapp.Discord/discord-ipc-0", tmp_path);
+        let mut fallback_path = format!("{}/discord-ipc-0", tmp_path);
         for seq in 0..10i32 {
-            socket_path.pop();
-
-            use std::fmt::Write;
-            write!(&mut socket_path, "{}", seq).unwrap();
-
-            match Pipe::connect(&socket_path).await {
-                Ok(stream) => {
-                    tracing::debug!("connected to {}!", socket_path);
-                    return Ok(stream);
-                }
-                Err(e) => {
-                    tracing::trace!("Unable to connect to {}: {}", socket_path, e);
+            for path in [&mut socket_path, &mut fallback_path] {
+                path.pop();
+                use std::fmt::Write;
+                write!(path, "{}", seq).unwrap();
+                match Pipe::connect(&path).await {
+                    Ok(stream) => {
+                        tracing::debug!("connected to {}!", path);
+                        return Ok(stream);
+                    }
+                    Err(e) => {
+                        tracing::trace!("Unable to connect to {}: {}", path, e);
+                    }
                 }
             }
         }

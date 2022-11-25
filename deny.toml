@@ -35,7 +35,8 @@ allow-osi-fsf-free = "neither"
 confidence-threshold = 0.92
 copyleft = "deny"
 allow = [
-    "Apache-2.0", # https://tldrlegal.com/license/apache-license-2.0-(apache-2.0)
-    "MIT",        # https://tldrlegal.com/license/mit-license
+    "Apache-2.0",       # https://tldrlegal.com/license/apache-license-2.0-(apache-2.0)
+    "MIT",              # https://tldrlegal.com/license/mit-license
+    "Unicode-DFS-2016",
 ]
 exceptions = []

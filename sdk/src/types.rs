@@ -53,7 +53,7 @@ pub struct DiscordConfig {
 
 /// Discord uses [snowflakes](https://discord.com/developers/docs/reference#snowflakes)
 /// for most/all of their unique identifiers, including users, lobbies, etc
-#[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Ord, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Snowflake(pub u64);
 
 impl Snowflake {

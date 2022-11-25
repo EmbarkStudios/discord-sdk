@@ -23,7 +23,7 @@ impl OverlayToggle {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Visibility {
     Visible,
     Hidden,
@@ -70,7 +70,7 @@ impl<'de> serde::Deserialize<'de> for Visibility {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, serde_repr::Serialize_repr)]
+#[derive(Copy, Clone, PartialEq, Eq, serde_repr::Serialize_repr)]
 #[repr(u8)]
 pub enum InviteAction {
     Join = 1,

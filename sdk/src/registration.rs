@@ -19,7 +19,7 @@ use crate::Error;
 pub use registrar::register_app;
 pub use url::Url;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub enum BinArg {
     /// A placeholder token that will be filled with the url that was opened
     Url,

@@ -5,7 +5,7 @@ pub(crate) use command::{Command, CommandKind};
 pub(crate) use event::{Event, EventKind};
 
 #[derive(serde::Serialize)]
-pub(crate) struct Rpc<T: serde::Serialize> {
+pub(crate) struct Rpc<T> {
     /// The RPC type
     pub(crate) cmd: CommandKind,
     /// Every RPC we send to Discord needs a [`nonce`](https://en.wikipedia.org/wiki/Cryptographic_nonce)

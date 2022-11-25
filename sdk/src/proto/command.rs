@@ -2,7 +2,7 @@ use crate::lobby::Lobby;
 use serde::{Deserialize, Serialize};
 
 /// The different RPC command types
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum CommandKind {
     /// Dispatch the event specified in "evt".

@@ -1,35 +1,35 @@
+use clap::{Parser, Subcommand};
 use examples_shared::{
     self as es,
     anyhow::{self, Context as _},
     ds, tokio, tracing,
 };
-use structopt::StructOpt;
 
 use ds::{activity, lobby, overlay, relations, voice};
 
-#[derive(StructOpt, Debug)]
+#[derive(Subcommand, Debug)]
 enum LobbyCmd {
     Create {
-        #[structopt(long, default_value = "4")]
+        #[clap(long, default_value = "4")]
         capacity: u32,
     },
     Update {
-        #[structopt(long, default_value = "4")]
+        #[clap(long, default_value = "4")]
         capacity: u32,
     },
     Delete,
     Connect {
-        #[structopt(long)]
+        #[clap(long)]
         id: String,
-        #[structopt(long)]
+        #[clap(long)]
         secret: String,
     },
     Disconnect {
-        #[structopt(long)]
+        #[clap(long)]
         id: String,
     },
     Msg {
-        #[structopt(long)]
+        #[clap(long)]
         id: String,
         msg: String,
     },
@@ -37,46 +37,46 @@ enum LobbyCmd {
     Search,
 }
 
-#[derive(StructOpt, Debug)]
+#[derive(Parser, Debug)]
 struct ActivityUpdateCmd {
-    #[structopt(long, default_value = "repling")]
+    #[clap(long, default_value = "repling")]
     state: String,
-    #[structopt(long, default_value = "having fun")]
+    #[clap(long, default_value = "having fun")]
     details: String,
     /// Sets the start timestamp to the current system time
-    #[structopt(long)]
+    #[clap(long)]
     start: bool,
     /// Sets the end timestamp to 1 minute in the future
-    #[structopt(long)]
+    #[clap(long)]
     end: bool,
 }
 
-#[derive(StructOpt, Debug)]
+#[derive(Subcommand, Debug)]
 enum ActivityCmd {
     Invite {
         /// The message to send to the user in the invite
-        #[structopt(long, default_value = "please join")]
+        #[clap(long, default_value = "please join")]
         msg: String,
         /// Invite to spectate, if not provided, invites to join instead
-        #[structopt(long)]
+        #[clap(long)]
         spectate: bool,
         /// The unique identifier for the user
         id: String,
     },
     Accept,
     Reply {
-        #[structopt(long)]
+        #[clap(long)]
         accept: bool,
     },
     Update(ActivityUpdateCmd),
 }
 
-#[derive(StructOpt, Debug)]
+#[derive(Subcommand, Debug)]
 enum OverlayCmd {
     Open,
     Close,
     Invite {
-        #[structopt(long)]
+        #[clap(long)]
         join: bool,
     },
     Voice,
@@ -85,28 +85,29 @@ enum OverlayCmd {
     },
 }
 
-#[derive(StructOpt, Debug)]
+#[derive(Subcommand, Debug)]
 enum RelationsCmd {
     Print,
 }
 
-#[derive(StructOpt, Debug)]
-enum InputMode {
-    Activity,
-    Ptt { shortcut: String },
+#[derive(Clone, clap::Args, Debug)]
+struct InputMode {
+    #[clap(conflicts_with = "ptt")]
+    activity: bool,
+    ptt: Option<String>,
 }
 
-#[derive(StructOpt, Debug)]
+#[derive(Subcommand, Debug)]
 enum VoiceCmd {
     SetInputMode(InputMode),
     Update {
-        #[structopt(long)]
+        #[clap(long)]
         mute: bool,
-        #[structopt(long)]
+        #[clap(long)]
         deaf: bool,
     },
     MuteUser {
-        #[structopt(long)]
+        #[clap(long)]
         mute: bool,
         user: u64,
     },
@@ -117,14 +118,35 @@ enum VoiceCmd {
     Print,
 }
 
-#[derive(StructOpt, Debug)]
-enum Cmd {
-    Lobby(LobbyCmd),
-    Activity(ActivityCmd),
-    Overlay(OverlayCmd),
-    Relations(RelationsCmd),
-    Voice(VoiceCmd),
+#[derive(Subcommand, Debug)]
+enum Commands {
+    Lobby {
+        #[clap(subcommand)]
+        cmd: LobbyCmd,
+    },
+    Activity {
+        #[clap(subcommand)]
+        cmd: ActivityCmd,
+    },
+    Overlay {
+        #[clap(subcommand)]
+        cmd: OverlayCmd,
+    },
+    Relations {
+        #[clap(subcommand)]
+        cmd: RelationsCmd,
+    },
+    Voice {
+        #[clap(subcommand)]
+        cmd: VoiceCmd,
+    },
     Exit,
+}
+
+#[derive(Parser, Debug)]
+struct Cmd {
+    #[clap(subcommand)]
+    cmd: Commands,
 }
 
 #[tokio::main]
@@ -226,9 +248,9 @@ async fn main() -> Result<(), anyhow::Error> {
             }
         };
 
-        match Cmd::from_iter_safe(std::iter::once("repl".to_owned()).chain(split.into_iter())) {
+        match Cmd::try_parse_from(std::iter::once("repl".to_owned()).chain(split.into_iter())) {
             Ok(cmd) => {
-                if let Cmd::Exit = &cmd {
+                if let Commands::Exit = &cmd.cmd {
                     break;
                 }
 
@@ -237,9 +259,9 @@ async fn main() -> Result<(), anyhow::Error> {
                     cmd: &Cmd,
                     state: &mut ReplState,
                 ) -> anyhow::Result<()> {
-                    match cmd {
-                        Cmd::Exit => unreachable!(),
-                        Cmd::Lobby(lobby) => match lobby {
+                    match &cmd.cmd {
+                        Commands::Exit => unreachable!(),
+                        Commands::Lobby { cmd: lobby } => match lobby {
                             LobbyCmd::Create { capacity } => {
                                 if let Some(lobby) = &state.created_lobby {
                                     anyhow::bail!("Lobby {:#?} already exists", lobby);
@@ -315,7 +337,7 @@ async fn main() -> Result<(), anyhow::Error> {
                                 tracing::info!("{:#?}", state.lobbies.lobbies.read());
                             }
                         },
-                        Cmd::Activity(activity) => match activity {
+                        Commands::Activity { cmd: activity } => match activity {
                             ActivityCmd::Accept => {
                                 let invite =
                                     state.invites_rx.try_recv().context("no pending invites")?;
@@ -370,7 +392,7 @@ async fn main() -> Result<(), anyhow::Error> {
                                 discord.update_activity(ab).await?;
                             }
                         },
-                        Cmd::Overlay(overlay) => match overlay {
+                        Commands::Overlay { cmd: overlay } => match overlay {
                             OverlayCmd::Open => {
                                 discord
                                     .set_overlay_visibility(overlay::Visibility::Visible)
@@ -400,26 +422,25 @@ async fn main() -> Result<(), anyhow::Error> {
                                 discord.open_guild_invite(code).await?;
                             }
                         },
-                        Cmd::Relations(rc) => match rc {
+                        Commands::Relations { cmd: rc } => match rc {
                             RelationsCmd::Print => {
                                 tracing::info!("{:#?}", state.relationships.relationships.read());
                             }
                         },
-                        Cmd::Voice(vc) => match vc {
-                            VoiceCmd::SetInputMode(kind) => match kind {
-                                InputMode::Activity => {
+                        Commands::Voice { cmd: vc } => match vc {
+                            VoiceCmd::SetInputMode(im) => {
+                                if im.activity {
                                     discord
                                         .voice_set_input_mode(voice::InputMode::VoiceActivity)
-                                        .await?
-                                }
-                                InputMode::Ptt { shortcut } => {
+                                        .await?;
+                                } else if let Some(shortcut) = &im.ptt {
                                     discord
                                         .voice_set_input_mode(voice::InputMode::PushToTalk {
                                             shortcut: shortcut.clone(),
                                         })
-                                        .await?
+                                        .await?;
                                 }
-                            },
+                            }
                             VoiceCmd::Update { mute, deaf } => {
                                 discord
                                     .update_voice_settings(voice::VoiceSettingsSelf {
