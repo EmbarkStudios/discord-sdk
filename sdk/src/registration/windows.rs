@@ -1,4 +1,4 @@
-use crate::Error;
+use crate::{registration::current_exe_path, Error};
 
 pub fn register_app(app: super::Application) -> Result<(), Error> {
     use super::LaunchCommand;
@@ -9,9 +9,7 @@ pub fn register_app(app: super::Application) -> Result<(), Error> {
 
         let hkcu = RegKey::predef(HKEY_CURRENT_USER);
 
-        let mut icon_path = std::env::current_exe()
-            .context("unable to retrieve current executable path")?
-            .into_os_string();
+        let mut icon_path = current_exe_path()?.into_os_string();
 
         let command = match app.command {
             LaunchCommand::Bin { path, args } => {
@@ -77,12 +75,13 @@ pub fn register_app(app: super::Application) -> Result<(), Error> {
             .create_subkey(&discord_handler)
             .context("unable to create discord handler")?;
 
-        let name = app.name.unwrap_or_else(|| id.to_string());
-
-        disc_key.set_value("", &format!("URL:Run {} protocol", name))?;
+        disc_key.set_value("", &format!("URL:Run game {id} protocol"))?;
         disc_key.set_value("URL Protocol", &"")?;
-        icon_path.push(",0");
-        disc_key.set_value("DefaultIcon", &&*icon_path)?;
+
+        let (icon_key, _disp) = disc_key
+            .create_subkey("DefaultIcon")
+            .context("unable to create icon key")?;
+        icon_key.set_value("", &&*icon_path)?;
 
         let (open_key, _disp) = disc_key
             .create_subkey(r#"shell\open\command"#)
