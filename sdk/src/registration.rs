@@ -47,10 +47,34 @@ pub enum LaunchCommand {
     Steam(u32),
 }
 
+pub(crate) fn current_exe_path() -> Result<std::path::PathBuf, Error> {
+    use std::path::Component;
+
+    let unstripped_path =
+        std::env::current_exe().map_err(|e| Error::io("retrieving current executable path", e))?;
+    let mut stripped_path = std::path::PathBuf::with_capacity(unstripped_path.capacity());
+    // Windows doesn't support Verbatim prefixed paths in the open paths apparently
+    for component in unstripped_path.components() {
+        match component {
+            Component::Prefix(prefix) => match prefix.kind() {
+                std::path::Prefix::Verbatim(stripped) => stripped_path.push(stripped),
+                std::path::Prefix::VerbatimDisk(disk) => {
+                    stripped_path.push(std::path::Path::new(
+                        // Disk is an ascii char
+                        &format!("{}:", std::str::from_utf8(&[disk]).unwrap()),
+                    ));
+                }
+                _ => stripped_path.push(Component::Prefix(prefix).as_os_str()),
+            },
+            _ => stripped_path.push(component),
+        }
+    }
+    Ok(stripped_path)
+}
+
 impl LaunchCommand {
     pub fn current_exe(args: Vec<BinArg>) -> Result<Self, Error> {
-        let path = std::env::current_exe()
-            .map_err(|e| Error::io("retrieving current executable path", e))?;
+        let path = current_exe_path()?;
 
         if args.iter().filter(|a| **a == BinArg::Url).count() > 1 {
             return Err(Error::TooManyUrls);
