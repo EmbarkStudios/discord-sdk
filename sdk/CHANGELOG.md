@@ -9,7 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#22](https://github.com/EmbarkStudios/discord-sdk/pull/22) fixed application registrations on Windows.
+
 ## [0.3.1] - 2022-11-25
+### Fixed
+- [PR#21](https://github.com/EmbarkStudios/discord-sdk/pull/21) fixed the resolution of the Unix domain socket on Linux if Discord is being run via flatpak.
+
 ## [0.3.0] - 2022-03-02
 ### Changed
 - [PR#20](https://github.com/EmbarkStudios/discord-sdk/pull/20) replaced `chrono` in favor of the (maintained) `time` crate.
