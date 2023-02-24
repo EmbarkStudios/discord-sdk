@@ -3,6 +3,8 @@
 
 pub mod events;
 
+use std::marker::PhantomData;
+
 use crate::{user::UserId, Command, CommandKind, Error};
 use serde::{Deserialize, Serialize};
 
@@ -196,8 +198,8 @@ impl From<bool> for JoinRequestReply {
     }
 }
 
-#[derive(Default, Clone, Debug, Deserialize, Serialize)]
-pub struct Activity {
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Activity<B = Button> {
     /// The player's current party status
     #[serde(skip_serializing_if = "Option::is_none")]
     pub state: Option<String>,
@@ -216,11 +218,37 @@ pub struct Activity {
     /// Secret passwords for joining and spectating the player's game
     #[serde(skip_serializing_if = "Option::is_none")]
     pub secrets: Option<Secrets>,
+    /// Buttons visibile underneath the activity.
+    /// An activity can have a maximum of 2 buttons.
+    /// Also an activity can **either** have buttons or secrets.
+    #[serde(skip_serializing_if = "Vec::is_empty", default = "Default::default")]
+    pub buttons: Vec<B>,
     #[serde(skip_serializing, rename = "type")]
     pub kind: ActivityKind,
     #[serde(default)]
     /// Whether this activity is an instanced context, like a match
     pub instance: bool,
+}
+
+/// Activity response from Discord.
+pub type ActivityResponse = Activity<String>;
+
+// Manual Default implementation because derive implementation would require `B: Default` which is
+// wrong. See https://github.com/rust-lang/rust/issues/26925
+impl<B> Default for Activity<B> {
+    fn default() -> Self {
+        Self {
+            state: Default::default(),
+            details: Default::default(),
+            timestamps: Default::default(),
+            assets: Default::default(),
+            party: Default::default(),
+            secrets: Default::default(),
+            buttons: Default::default(),
+            kind: Default::default(),
+            instance: Default::default(),
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -240,7 +268,7 @@ pub struct InviteActivity {
 #[allow(dead_code)]
 pub struct SetActivity {
     #[serde(flatten)]
-    activity: Activity,
+    activity: Activity<String>,
     /// The name of the application
     name: Option<String>,
     #[serde(deserialize_with = "crate::util::string::deserialize_opt")]
@@ -261,6 +289,13 @@ pub struct Secrets {
     pub spectate: Option<String>,
 }
 
+/// A clickable button underneath the activity.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Button {
+    pub label: String,
+    pub url: String,
+}
+
 #[derive(Serialize, Debug)]
 pub struct ActivityArgs {
     pid: u32,
@@ -277,19 +312,33 @@ impl Default for ActivityArgs {
     }
 }
 
-impl From<ActivityBuilder> for ActivityArgs {
+impl<T> From<ActivityBuilder<T>> for ActivityArgs {
     #[inline]
-    fn from(ab: ActivityBuilder) -> Self {
+    fn from(ab: ActivityBuilder<T>) -> Self {
         ab.inner
     }
 }
 
+pub struct Standard;
+pub struct WithSecrets;
+pub struct WithButtons;
+
 #[derive(Default, Debug)]
-pub struct ActivityBuilder {
+pub struct ActivityBuilder<T> {
     pub(crate) inner: ActivityArgs,
+    kind: PhantomData<T>,
 }
 
-impl ActivityBuilder {
+impl Default for ActivityBuilder<Standard> {
+    fn default() -> Self {
+        Self {
+            inner: Default::default(),
+            kind: PhantomData,
+        }
+    }
+}
+
+impl ActivityBuilder<Standard> {
     pub fn new() -> Self {
         Self::default()
     }
@@ -301,9 +350,28 @@ impl ActivityBuilder {
                 pid,
                 activity: None,
             },
+            kind: PhantomData,
         }
     }
 
+    /// Enables this [`ActivityBuilder`] to set buttons.
+    pub fn with_buttons(self) -> ActivityBuilder<WithButtons> {
+        ActivityBuilder {
+            inner: self.inner,
+            kind: PhantomData,
+        }
+    }
+
+    /// Enables this [`ActivityBuilder`] to set secrets.
+    pub fn with_secrets(self) -> ActivityBuilder<WithSecrets> {
+        ActivityBuilder {
+            inner: self.inner,
+            kind: PhantomData,
+        }
+    }
+}
+
+impl<T> ActivityBuilder<T> {
     /// The user's currenty party status, eg. "Playing Solo".
     ///
     /// Limited to 128 bytes.
@@ -524,7 +592,9 @@ impl ActivityBuilder {
 
         self
     }
+}
 
+impl ActivityBuilder<WithSecrets> {
     /// Sets secrets, allowing other player's to join or spectate the player's
     /// game
     pub fn secrets(mut self, secrets: Secrets) -> Self {
@@ -543,7 +613,22 @@ impl ActivityBuilder {
                 });
             }
         }
+        self
+    }
+}
 
+impl ActivityBuilder<WithButtons> {
+    /// Adds up to two buttons with a label and a link other users can click on
+    pub fn button(mut self, button: Button) -> Self {
+        match &mut self.inner.activity {
+            Some(Activity { buttons, .. }) => buttons.push(button),
+            None => {
+                self.inner.activity = Some(Activity {
+                    buttons: vec![button],
+                    ..Default::default()
+                });
+            }
+        }
         self
     }
 }
@@ -559,7 +644,7 @@ impl crate::Discord {
     pub async fn update_activity(
         &self,
         activity: impl Into<ActivityArgs>,
-    ) -> Result<Option<Activity>, Error> {
+    ) -> Result<Option<ActivityResponse>, Error> {
         let rx = self.send_rpc(CommandKind::SetActivity, activity.into())?;
 
         // TODO: Keep track of the last set activity and send it immediately if
@@ -643,7 +728,7 @@ impl crate::Discord {
     /// Clears the rich presence for the logged in [`User`](crate::user::User).
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/activities#clearactivity)
-    pub async fn clear_activity(&self) -> Result<Option<Activity>, Error> {
+    pub async fn clear_activity(&self) -> Result<Option<ActivityResponse>, Error> {
         let rx = self.send_rpc(CommandKind::SetActivity, ActivityArgs::default())?;
 
         handle_response!(rx, Command::SetActivity(sa) => {
@@ -729,6 +814,7 @@ mod test {
                 std::num::NonZeroU32::new(2),
                 PartyPrivacy::Private,
             )
+            .with_secrets()
             .secrets(Secrets {
                 join: Some("sekret".to_owned()),
                 ..Default::default()
