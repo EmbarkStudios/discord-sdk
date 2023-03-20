@@ -169,12 +169,12 @@ cargo test --features local-testing test_lobbies
 
 ## Contribution
 
-[![Contributor Covenant](https://img.shields.io/badge/contributor%20covenant-v1.4-ff69b4.svg)](CODE_OF_CONDUCT.md)
+[![Contributor Covenant](https://img.shields.io/badge/contributor%20covenant-v1.4-ff69b4.svg)](https://github.com/EmbarkStudios/discord-sdk/blob/main/sdk/CODE_OF_CONDUCT.md)
 
 We welcome community contributions to this project.
 
-Please read our [Contributor Guide](CONTRIBUTING.md) for more information on how to get started.
-Please also read our [Contributor Terms](CONTRIBUTING.md/#Contributor-Terms) before you make any contributions.
+Please read our [Contributor Guide](https://github.com/EmbarkStudios/discord-sdk/blob/main/sdk/CONTRIBUTING.md) for more information on how to get started.
+Please also read our [Contributor Terms](https://github.com/EmbarkStudios/discord-sdk/blob/main/sdk/CONTRIBUTING.md/#Contributor-Terms) before you make any contributions.
 
 Any contribution intentionally submitted for inclusion in an Embark Studios project, shall comply with the Rust standard licensing model (MIT OR Apache 2.0) and therefore be dual licensed as described below, without any additional terms or conditions:
 
@@ -182,8 +182,8 @@ Any contribution intentionally submitted for inclusion in an Embark Studios proj
 
 This contribution is dual licensed under EITHER OF
 
-- Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>
-- MIT license ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
+- Apache License, Version 2.0, ([LICENSE-APACHE](https://github.com/EmbarkStudios/discord-sdk/blob/main/sdk/LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>
+- MIT license ([LICENSE-MIT](https://github.com/EmbarkStudios/discord-sdk/blob/main/sdk/LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
 
 at your option.
 
