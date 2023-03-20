@@ -16,7 +16,14 @@ ignore = []
 [bans]
 multiple-versions = "deny"
 deny = [{ name = "chrono" }]
-skip = []
+skip = [
+    # insta/console uses outdated 0.42, but it's dev only so doesn't impact users
+    { name = "windows-sys", version = "=0.42" },
+    # Older version only used by examples/sniff
+    { name = "bitflags", version = "=1.3.2" },
+    # This will be fixed...eventually
+    { name = "syn", version = "=1.0.109" },
+]
 skip-tree = []
 
 [sources]

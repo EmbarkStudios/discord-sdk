@@ -28,7 +28,7 @@ async-trait = "0.1"
 # Lobby messages can be an arbitrary binary blob which needs to be encoded
 # in base64
 base64 = "0.13"
-bitflags = "1.2"
+bitflags = "2.0"
 crossbeam-channel = "0.5"
 num-traits = "0.2"
 # Better sync primitives
@@ -62,7 +62,7 @@ app_dirs2 = "2.3"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 # We need to read and modify the registry when doing application registration
-winreg = "0.10"
+winreg = "0.11"
 
 [dev-dependencies]
 # So tests can print out tracing

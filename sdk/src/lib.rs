@@ -52,6 +52,7 @@ impl From<registration::Application> for DiscordApp {
 }
 
 bitflags::bitflags! {
+    #[derive(Copy, Clone)]
     pub struct Subscriptions: u32 {
         const ACTIVITY = 0x1;
         const LOBBY = 0x2;
@@ -60,7 +61,7 @@ bitflags::bitflags! {
         const RELATIONSHIPS = 0x10;
         const VOICE = 0x20;
 
-        const ALL = Self::ACTIVITY.bits | Self::LOBBY.bits | Self::USER.bits | Self::OVERLAY.bits | Self::RELATIONSHIPS.bits | Self::VOICE.bits;
+        const ALL = Self::ACTIVITY.bits() | Self::LOBBY.bits() | Self::USER.bits() | Self::OVERLAY.bits() | Self::RELATIONSHIPS.bits() | Self::VOICE.bits();
     }
 }
 

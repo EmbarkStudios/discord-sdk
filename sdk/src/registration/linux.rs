@@ -31,7 +31,7 @@ pub fn register_app(app: super::Application) -> Result<(), Error> {
 
         std::fs::write(
             &desktop_path,
-            &format!(
+            format!(
                 r#"[Desktop Entry]
         Name={name}
         Exec={cmd}
