@@ -75,7 +75,7 @@ pub struct Assets {
 impl Assets {
     /// Sets the large image and optional text to use for the rich presence profile
     ///
-    /// Key images are limites to 32 bytes on the server, and any keys over that are
+    /// Key images are limited to 32 bytes on the server, and any keys over that are
     /// discarded, however, URL-proxied keys have no such limit. The image text is
     /// limited to 128 bytes and will be truncated if longer than that.
     pub fn large(mut self, key: impl Into<String>, text: Option<impl Into<String>>) -> Self {
