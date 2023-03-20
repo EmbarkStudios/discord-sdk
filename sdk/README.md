@@ -145,7 +145,7 @@ Also note, the SDK itself and its documentation uses the utterly confusing termi
 
 ### ⚠️ Deprecation
 
-This hasn't been officially announced by Discord yet, but the [Voice](#voice), [Lobbies](#lobbies), and [Networking](#networking) functionality will be deprecated and removed sometime in the future. Since only the lobbies functionality has been implemented thusfar, we will mark that functionality as [`deprecated`](https://doc.rust-lang.org/reference/attributes/diagnostics.html#the-deprecated-attribute) once it is official.
+This hasn't been officially announced by Discord yet, but the [Voice](#voice), [Lobbies](#lobbies), and [Networking](#networking) functionality will be deprecated and removed sometime in the future. Since only the lobbies functionality has been implemented thus far, we will mark that functionality as [`deprecated`](https://doc.rust-lang.org/reference/attributes/diagnostics.html#the-deprecated-attribute) once it is official.
 
 ## Testing
 
@@ -182,7 +182,7 @@ Any contribution intentionally submitted for inclusion in an Embark Studios proj
 
 This contribution is dual licensed under EITHER OF
 
-- Apache License, Version 2.0, ([LICENSE-APACHE](https://github.com/EmbarkStudios/discord-sdk/blob/main/sdk/LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>
+- Apache License, Version 2.0, ([LICENSE-APACHE](https://github.com/EmbarkStudios/discord-sdk/blob/main/sdk/LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
 - MIT license ([LICENSE-MIT](https://github.com/EmbarkStudios/discord-sdk/blob/main/sdk/LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
 
 at your option.
