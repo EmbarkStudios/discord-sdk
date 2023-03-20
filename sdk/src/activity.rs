@@ -75,12 +75,12 @@ pub struct Assets {
 impl Assets {
     /// Sets the large image and optional text to use for the rich presence profile
     ///
-    /// The key is limited to 32 bytes on the server, so any keys over that size
-    /// will be considered invalid and won't be set. The image text is limited
-    /// to 128 bytes and will be truncated if longer than that.
+    /// Key images are limited to 32 bytes on the server, and any keys over that are
+    /// discarded, however, URL-proxied keys have no such limit. The image text is
+    /// limited to 128 bytes and will be truncated if longer than that.
     pub fn large(mut self, key: impl Into<String>, text: Option<impl Into<String>>) -> Self {
         let key = key.into();
-        if key.len() > 32 {
+        if key.len() > 32 && (!key.starts_with("http://") || !key.starts_with("https://")) {
             tracing::warn!("Large Image Key '{}' is invalid, disregarding", key);
             return self;
         }
@@ -92,12 +92,12 @@ impl Assets {
 
     /// Sets the small image and optional text to use for the rich presence profile
     ///
-    /// The key is limited to 32 bytes on the server, so any keys over that size
-    /// will be considered invalid and won't be set. The image text is limited
-    /// to 128 bytes and will be truncated if longer than that.
+    /// Key images are limited to 32 bytes on the server, and any keys over that are
+    /// discarded, however, URL-proxied keys have no such limit. The image text is
+    /// limited to 128 bytes and will be truncated if longer than that.
     pub fn small(mut self, key: impl Into<String>, text: Option<impl Into<String>>) -> Self {
         let key = key.into();
-        if key.len() > 32 {
+        if key.len() > 32 && (!key.starts_with("http://") || !key.starts_with("https://")) {
             tracing::warn!("Small Image Key '{}' is invalid, disregarding", key);
             return self;
         }
