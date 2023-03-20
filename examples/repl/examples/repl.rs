@@ -376,7 +376,6 @@ async fn main() -> Result<(), anyhow::Error> {
                                         std::num::NonZeroU32::new(2),
                                         activity::PartyPrivacy::Private,
                                     )
-                                    .with_secrets()
                                     .secrets(ds::activity::Secrets {
                                         join: Some("joinme".to_owned()),
                                         spectate: Some("spectateme".to_owned()),

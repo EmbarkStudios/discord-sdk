@@ -65,7 +65,6 @@ async fn test_activity() {
                     std::num::NonZeroU32::new(2),
                     activity::PartyPrivacy::Public,
                 )
-                .with_secrets()
                 .secrets(activity::Secrets {
                     join: Some("muchsecretverysecurity".to_owned()),
                     ..Default::default()
