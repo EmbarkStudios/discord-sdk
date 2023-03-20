@@ -22,6 +22,10 @@ async fn main() -> Result<(), anyhow::Error> {
                 .large("the".to_owned(), Some("u mage".to_owned()))
                 .small("the".to_owned(), Some("i mage".to_owned())),
         )
+        .button(ds::activity::Button {
+            label: "discord-sdk by EmbarkStudios".to_owned(),
+            url: "https://github.com/EmbarkStudios/discord-sdk".to_owned(),
+        })
         .start_timestamp(SystemTime::now());
 
     tracing::info!(

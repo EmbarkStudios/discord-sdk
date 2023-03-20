@@ -196,7 +196,7 @@ impl From<bool> for JoinRequestReply {
     }
 }
 
-#[derive(Default, Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Activity {
     /// The player's current party status
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -213,9 +213,10 @@ pub struct Activity {
     /// Information about the player's party
     #[serde(skip_serializing_if = "Option::is_none")]
     pub party: Option<Party>,
-    /// Secret passwords for joining and spectating the player's game
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub secrets: Option<Secrets>,
+    /// Defines clickable buttons in the activity **OR** secrets  for joining and spectating the
+    /// player's game.
+    #[serde(skip_serializing_if = "Option::is_none", flatten)]
+    pub buttons_or_secrets: Option<ButtonsOrSecrets>,
     #[serde(skip_serializing, rename = "type")]
     pub kind: ActivityKind,
     #[serde(default)]
@@ -261,6 +262,20 @@ pub struct Secrets {
     pub spectate: Option<String>,
 }
 
+/// A clickable button underneath the activity.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Button {
+    pub label: String,
+    pub url: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ButtonKind {
+    Label(String),
+    Link(Button),
+}
+
 #[derive(Serialize, Debug)]
 pub struct ActivityArgs {
     pid: u32,
@@ -303,7 +318,6 @@ impl ActivityBuilder {
             },
         }
     }
-
     /// The user's currenty party status, eg. "Playing Solo".
     ///
     /// Limited to 128 bytes.
@@ -525,25 +539,53 @@ impl ActivityBuilder {
         self
     }
 
+    /// Adds up to two buttons with a label and a link other users can click on
+    ///
+    /// Overwrites any secrets already set in the activity.
+    pub fn button(mut self, button: Button) -> Self {
+        let button = ButtonKind::Link(button);
+        match &mut self.inner.activity {
+            Some(Activity {
+                buttons_or_secrets, ..
+            }) => match buttons_or_secrets {
+                Some(ButtonsOrSecrets::Buttons { buttons }) => buttons.push(button),
+                buttons_or_secrets => {
+                    *buttons_or_secrets = Some(ButtonsOrSecrets::Buttons {
+                        buttons: vec![button],
+                    });
+                }
+            },
+            None => {
+                self.inner.activity = Some(Activity {
+                    buttons_or_secrets: Some(ButtonsOrSecrets::Buttons {
+                        buttons: vec![button],
+                    }),
+                    ..Default::default()
+                });
+            }
+        }
+        self
+    }
     /// Sets secrets, allowing other player's to join or spectate the player's
     /// game
+    ///
+    /// Overwrites any buttons already set in the activity.
     pub fn secrets(mut self, secrets: Secrets) -> Self {
         if secrets.join.is_none() && secrets.r#match.is_none() && secrets.spectate.is_none() {
             return self;
         }
 
-        let secrets = Some(secrets);
-
         match &mut self.inner.activity {
-            Some(activity) => activity.secrets = secrets,
+            Some(activity) => {
+                activity.buttons_or_secrets = Some(ButtonsOrSecrets::Secrets { secrets });
+            }
             None => {
                 self.inner.activity = Some(Activity {
-                    secrets,
+                    buttons_or_secrets: Some(ButtonsOrSecrets::Secrets { secrets }),
                     ..Default::default()
                 });
             }
         }
-
         self
     }
 }
@@ -688,6 +730,13 @@ impl crate::Discord {
             }
         }
     }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ButtonsOrSecrets {
+    Buttons { buttons: Vec<ButtonKind> },
+    Secrets { secrets: Secrets },
 }
 
 /// All strings in the rich presence info have limits enforced in discord itself
