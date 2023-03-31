@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.3.4] - 2023-03-31
 ### Fixed
 - [PR#30](https://github.com/EmbarkStudios/discord-sdk/pull/30) fixed a bug with asset key validation added in [PR#26](https://github.com/EmbarkStudios/discord-sdk/pull/26). Thanks [@winrg](https://github.com/winrg)!
 
@@ -74,7 +75,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial crate squat
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/discord-sdk/compare/0.3.3...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/discord-sdk/compare/0.3.4...HEAD
+[0.3.4]: https://github.com/EmbarkStudios/discord-sdk/compare/0.3.3...0.3.4
 [0.3.3]: https://github.com/EmbarkStudios/discord-sdk/compare/0.3.2...0.3.3
 [0.3.2]: https://github.com/EmbarkStudios/discord-sdk/compare/0.3.1...0.3.2
 [0.3.1]: https://github.com/EmbarkStudios/discord-sdk/compare/0.3.0...0.3.1
