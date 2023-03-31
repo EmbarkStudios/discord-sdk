@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Fixed
+- [PR#30](https://github.com/EmbarkStudios/discord-sdk/pull/30) fixed a bug with asset key validation added in [PR#26](https://github.com/EmbarkStudios/discord-sdk/pull/26). Thanks [@winrg](https://github.com/winrg)!
+
 ## [0.3.3] - 2023-03-20
 ### Added
 - [PR#24](https://github.com/EmbarkStudios/discord-sdk/pull/24) added support for [buttons](https://discord.com/developers/docs/interactions/message-components#buttons). Thanks [@NyCodeGHG](https://github.com/NyCodeGHG)!
