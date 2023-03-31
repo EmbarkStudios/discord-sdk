@@ -5,7 +5,7 @@ authors = [
     "Embark <opensource@embark-studios.com>",
     "Jake Shadle <jake.shadle@embark-studios.com>",
 ]
-edition = "2018"
+edition = "2021"
 description = "An open implementation of the Discord Game SDK"
 license = "MIT OR Apache-2.0"
 documentation = "https://docs.rs/discord-sdk"
@@ -27,7 +27,7 @@ anyhow = "1.0"
 async-trait = "0.1"
 # Lobby messages can be an arbitrary binary blob which needs to be encoded
 # in base64
-base64 = "0.13"
+base64 = "0.21"
 bitflags = "2.0"
 crossbeam-channel = "0.5"
 num-traits = "0.2"
