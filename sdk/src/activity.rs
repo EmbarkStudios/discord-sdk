@@ -73,6 +73,11 @@ pub struct Assets {
 }
 
 impl Assets {
+    #[inline]
+    fn validate_key(key: &str) -> bool {
+        key.len() <= 32 || key.starts_with("http://") || key.starts_with("https://")
+    }
+
     /// Sets the large image and optional text to use for the rich presence profile
     ///
     /// Key images are limited to 32 bytes on the server, and any keys over that are
@@ -80,8 +85,8 @@ impl Assets {
     /// limited to 128 bytes and will be truncated if longer than that.
     pub fn large(mut self, key: impl Into<String>, text: Option<impl Into<String>>) -> Self {
         let key = key.into();
-        if key.len() > 32 && !key.starts_with("http://") && !key.starts_with("https://") {
-            tracing::warn!("Large Image Key '{}' is invalid, disregarding", key);
+        if !Self::validate_key(&key) {
+            tracing::warn!("Large Image Key '{key}' is invalid, disregarding");
             return self;
         }
 
@@ -97,8 +102,8 @@ impl Assets {
     /// limited to 128 bytes and will be truncated if longer than that.
     pub fn small(mut self, key: impl Into<String>, text: Option<impl Into<String>>) -> Self {
         let key = key.into();
-        if key.len() > 32 && !key.starts_with("http://") && !key.starts_with("https://") {
-            tracing::warn!("Small Image Key '{}' is invalid, disregarding", key);
+        if !Self::validate_key(&key) {
+            tracing::warn!("Small Image Key '{key}' is invalid, disregarding");
             return self;
         }
 
@@ -792,5 +797,16 @@ mod test {
         };
 
         insta::assert_json_snapshot!(cmd);
+    }
+
+    #[test]
+    fn asset_keys() {
+        assert!(Assets::validate_key("tiny_key"));
+        assert!(Assets::validate_key("_-_thirtytwocharacterassetkey_-_"));
+        assert!(!Assets::validate_key("_-_thirtythreecharacterassetkey_-"));
+        assert!(Assets::validate_key("http://shortboi.com/image"));
+        assert!(Assets::validate_key(
+            "https://superlongboibutthatsokbecauseitshttps.com/image"
+        ));
     }
 }
