@@ -248,7 +248,7 @@ async fn main() -> Result<(), anyhow::Error> {
             }
         };
 
-        match Cmd::try_parse_from(std::iter::once("repl".to_owned()).chain(split.into_iter())) {
+        match Cmd::try_parse_from(std::iter::once("repl".to_owned()).chain(split)) {
             Ok(cmd) => {
                 if let Commands::Exit = &cmd.cmd {
                     break;
