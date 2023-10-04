@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
 ## [0.3.5] - 2023-10-04
+### Changed
+- [PR#34](https://github.com/EmbarkStudios/discord-sdk/pull/34) replaced `base64` with `data-encoding`.
+
 ## [0.3.4] - 2023-03-31
 ### Fixed
 - [PR#30](https://github.com/EmbarkStudios/discord-sdk/pull/30) fixed a bug with asset key validation added in [PR#26](https://github.com/EmbarkStudios/discord-sdk/pull/26). Thanks [@winrg](https://github.com/winrg)!
