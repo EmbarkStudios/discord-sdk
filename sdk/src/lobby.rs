@@ -291,8 +291,7 @@ impl Serialize for LobbyMessage {
         match self {
             Self::Binary(bin) => {
                 let mut data = String::from("data:text/plain;base64,");
-                use base64::Engine;
-                base64::engine::general_purpose::STANDARD_NO_PAD.encode_string(bin, &mut data);
+                data_encoding::BASE64_NOPAD.encode_append(bin, &mut data);
 
                 serializer.serialize_str(&data)
             }
@@ -323,9 +322,8 @@ impl<'de> Deserialize<'de> for LobbyMessage {
                 E: de::Error,
             {
                 let msg = if let Some(encoded) = v.strip_prefix("data:text/plain;base64,") {
-                    use base64::Engine;
-                    let bin = base64::engine::general_purpose::STANDARD_NO_PAD
-                        .decode(encoded)
+                    let bin = data_encoding::BASE64_NOPAD
+                        .decode(encoded.as_bytes())
                         .map_err(de::Error::custom)?;
                     LobbyMessage::Binary(bin)
                 } else {
