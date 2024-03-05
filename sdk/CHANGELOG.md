@@ -5,11 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-<!-- markdownlint-disable blanks-around-headers no-duplicate-header blanks-around-lists -->
+<!-- markdownlint-disable blanks-around-headings no-duplicate-heading blanks-around-lists -->
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
 ## [0.3.6] - 2024-03-05
+### Fixed
+- [PR#36](https://github.com/EmbarkStudios/discord-sdk/pull/36) fixed [#35](https://github.com/EmbarkStudios/discord-sdk/issues/35) by properly truncating utf-8 strings.
+
 ## [0.3.5] - 2023-10-04
 ### Changed
 - [PR#34](https://github.com/EmbarkStudios/discord-sdk/pull/34) replaced `base64` with `data-encoding`.
