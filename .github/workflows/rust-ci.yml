@@ -64,3 +64,9 @@ jobs:
       - run: cargo fetch
       - name: cargo publish check
         run: cargo publish --dry-run --manifest-path sdk/Cargo.toml
+
+  test_success:
+    runs-on: ubuntu-22.04
+    needs: [lint,test,publish-check,deny-check]
+    steps:
+    - run: echo "All test jobs passed"
