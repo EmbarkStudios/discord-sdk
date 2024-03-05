@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.3.6] - 2024-03-05
 ## [0.3.5] - 2023-10-04
 ### Changed
 - [PR#34](https://github.com/EmbarkStudios/discord-sdk/pull/34) replaced `base64` with `data-encoding`.
@@ -79,7 +80,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial crate squat
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/discord-sdk/compare/0.3.5...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/discord-sdk/compare/0.3.6...HEAD
+[0.3.6]: https://github.com/EmbarkStudios/discord-sdk/compare/0.3.5...0.3.6
 [0.3.5]: https://github.com/EmbarkStudios/discord-sdk/compare/0.3.4...0.3.5
 [0.3.4]: https://github.com/EmbarkStudios/discord-sdk/compare/0.3.3...0.3.4
 [0.3.3]: https://github.com/EmbarkStudios/discord-sdk/compare/0.3.2...0.3.3
