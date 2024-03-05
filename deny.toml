@@ -1,15 +1,14 @@
-
+[graph]
 targets = [
-    { triple = "x86_64-unknown-linux-gnu" },
-    { triple = "x86_64-unknown-linux-musl" },
-    { triple = "aarch64-apple-darwin" },
-    { triple = "x86_64-apple-darwin" },
-    { triple = "x86_64-pc-windows-msvc" },
+    "x86_64-unknown-linux-gnu",
+    "x86_64-unknown-linux-musl",
+    "aarch64-apple-darwin",
+    "x86_64-apple-darwin",
+    "x86_64-pc-windows-msvc",
 ]
 
 [advisories]
-vulnerability = "deny"
-unmaintained = "warn"
+version = 2
 yanked = "deny"
 ignore = []
 
@@ -17,14 +16,10 @@ ignore = []
 multiple-versions = "deny"
 deny = [{ name = "chrono" }]
 skip = [
-    # insta/console uses outdated 0.42, but it's dev only so doesn't impact users
-    { name = "windows-sys", version = "=0.42" },
     # Older version only used by examples/sniff
     { name = "bitflags", version = "=1.3.2" },
-    # This will be fixed...eventually
-    { name = "syn", version = "=1.0.109" },
 ]
-skip-tree = []
+skip-tree = [{ crate = "windows-sys@0.48.0", reason = "the usual" }]
 
 [sources]
 unknown-registry = "deny"
@@ -36,11 +31,9 @@ allow-git = []
 github = ["EmbarkStudios"]
 
 [licenses]
+version = 2
 private = { ignore = true, registries = ["embark"] }
-unlicensed = "deny"
-allow-osi-fsf-free = "neither"
 confidence-threshold = 0.92
-copyleft = "deny"
 allow = [
     "Apache-2.0",       # https://tldrlegal.com/license/apache-license-2.0-(apache-2.0)
     "MIT",              # https://tldrlegal.com/license/mit-license

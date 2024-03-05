@@ -751,8 +751,20 @@ fn truncate(text: Option<impl Into<String>>, name: &str) -> Option<String> {
     text.and_then(|text| {
         let mut text = text.into();
         if text.len() > 128 {
-            tracing::warn!("{} '{}' is too long and will be truncated", name, text);
-            text.truncate(128);
+            tracing::warn!("{name} '{text}' is too long and will be truncated");
+
+            // TODO: Just use https://doc.rust-lang.org/std/primitive.str.html#method.floor_char_boundary
+            // when it is stabilized
+            let lower_bound = 125;
+            // Find the highest character boundary between our max and the lowest possible one
+            let new_index = text.as_bytes()[125..=128].iter().rposition(|b| {
+                // This is bit magic equivalent to: b < 128 || b >= 192
+                (*b as i8) >= -0x40
+            });
+
+            text.truncate(
+                lower_bound + new_index.expect("character boundary not found within 4 bytes"),
+            );
         }
 
         // Ensure the strings don't have just whitespace, as they are also not
@@ -797,6 +809,19 @@ mod test {
         };
 
         insta::assert_json_snapshot!(cmd);
+    }
+
+    #[test]
+    fn truncate() {
+        let s = super::truncate(
+            Some("xäääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääää"),
+            "test",
+        )
+        .unwrap();
+        assert_eq!(
+            s,
+            "xäääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääää"
+        );
     }
 
     #[test]

@@ -62,7 +62,7 @@ app_dirs2 = "2.3"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 # We need to read and modify the registry when doing application registration
-winreg = "0.51"
+winreg = "0.52"
 
 [dev-dependencies]
 # So tests can print out tracing
