@@ -71,7 +71,7 @@ pub struct Discord {
     send_queue: cc::Sender<Option<Vec<u8>>>,
     /// The handle to the task actually driving the I/O with Discord
     io_task: tokio::task::JoinHandle<()>,
-    /// The handle to the task dispatching messages to the DiscordHandler
+    /// The handle to the task dispatching messages to the [`DiscordHandler`]
     handler_task: tokio::task::JoinHandle<()>,
     state: State,
 }
