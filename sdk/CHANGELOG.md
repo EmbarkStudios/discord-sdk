@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.3.7] - 2024-07-26
 ### Added
 - [PR#38](https://github.com/EmbarkStudios/discord-sdk/pull/38) resolved [#39](https://github.com/EmbarkStudios/discord-sdk/issues/39) by adding serialization of the `type` (`kind`) field of [update activity](https://discord.com/developers/docs/game-sdk/activities#updateactivity).
 
@@ -86,7 +87,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial crate squat
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/discord-sdk/compare/0.3.6...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/discord-sdk/compare/0.3.7...HEAD
+[0.3.7]: https://github.com/EmbarkStudios/discord-sdk/compare/0.3.6...0.3.7
 [0.3.6]: https://github.com/EmbarkStudios/discord-sdk/compare/0.3.5...0.3.6
 [0.3.5]: https://github.com/EmbarkStudios/discord-sdk/compare/0.3.4...0.3.5
 [0.3.4]: https://github.com/EmbarkStudios/discord-sdk/compare/0.3.3...0.3.4
