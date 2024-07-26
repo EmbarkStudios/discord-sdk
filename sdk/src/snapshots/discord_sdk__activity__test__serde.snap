@@ -1,7 +1,7 @@
 ---
 source: sdk/src/activity.rs
+assertion_line: 811
 expression: cmd
-
 ---
 {
   "cmd": "SET_ACTIVITY",
@@ -25,6 +25,7 @@ expression: cmd
       "secrets": {
         "join": "sekret"
       },
+      "type": 0,
       "instance": false
     }
   }

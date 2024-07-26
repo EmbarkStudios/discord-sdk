@@ -222,7 +222,7 @@ pub struct Activity {
     /// player's game.
     #[serde(skip_serializing_if = "Option::is_none", flatten)]
     pub buttons_or_secrets: Option<ButtonsOrSecrets>,
-    #[serde(skip_serializing, rename = "type")]
+    #[serde(rename = "type")]
     pub kind: ActivityKind,
     #[serde(default)]
     /// Whether this activity is an instanced context, like a match

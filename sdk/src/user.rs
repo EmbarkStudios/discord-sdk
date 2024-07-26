@@ -83,7 +83,7 @@ pub struct User {
     pub discriminator: Option<u32>,
     /// The MD5 hash of the user's avatar
     pub avatar: Option<Avatar>,
-    /// Whether the user belongs to an OAuth2 application
+    /// Whether the user belongs to an `OAuth2` application
     pub is_bot: bool,
 }
 
@@ -157,7 +157,7 @@ struct DeUser<'u> {
     discriminator: Option<&'u str>,
     /// A hex-encoded MD5 hash of the user's avatar
     avatar: Option<&'u str>,
-    /// Whether the user belongs to an OAuth2 application
+    /// Whether the user belongs to an `OAuth2` application
     bot: Option<bool>,
 }
 

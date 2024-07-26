@@ -23,7 +23,7 @@ pub struct ErrorPayload {
 #[derive(Deserialize)]
 pub(crate) struct ErrorPayloadStack<'stack> {
     pub(crate) code: Option<u32>,
-    /// See https://github.com/serde-rs/serde/issues/1413#issuecomment-494892266
+    /// See [this issue](https://github.com/serde-rs/serde/issues/1413#issuecomment-494892266)
     /// for why this is a Cow, Discord occasionally sends escaped JSON in error
     /// messages
     pub(crate) message: Option<std::borrow::Cow<'stack, str>>,
