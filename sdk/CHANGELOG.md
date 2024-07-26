@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- [PR#38](https://github.com/EmbarkStudios/discord-sdk/pull/38) resolved [#39](https://github.com/EmbarkStudios/discord-sdk/issues/39) by adding serialization of the `type` (`kind`) field of [update activity](https://discord.com/developers/docs/game-sdk/activities#updateactivity).
+
 ## [0.3.6] - 2024-03-05
 ### Fixed
 - [PR#36](https://github.com/EmbarkStudios/discord-sdk/pull/36) fixed [#35](https://github.com/EmbarkStudios/discord-sdk/issues/35) by properly truncating utf-8 strings.
