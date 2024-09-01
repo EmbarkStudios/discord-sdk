@@ -813,6 +813,7 @@ mod test {
                 join: Some("sekret".to_owned()),
                 ..Default::default()
             })
+            .kind(ActivityKind::Listening)
             .into();
 
         let cmd = crate::proto::Rpc {

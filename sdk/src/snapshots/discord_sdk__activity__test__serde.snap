@@ -25,7 +25,7 @@ expression: cmd
       "secrets": {
         "join": "sekret"
       },
-      "type": 0,
+      "type": 2,
       "instance": false
     }
   }
