@@ -593,6 +593,20 @@ impl ActivityBuilder {
         }
         self
     }
+
+    /// Set the kind of this activity.
+    pub fn kind(mut self, kind: ActivityKind) -> Self {
+        match &mut self.inner.activity {
+            Some(activity) => activity.kind = kind,
+            None => {
+                self.inner.activity = Some(Activity {
+                    kind,
+                    ..Default::default()
+                });
+            }
+        }
+        self
+    }
 }
 
 impl crate::Discord {
@@ -799,6 +813,7 @@ mod test {
                 join: Some("sekret".to_owned()),
                 ..Default::default()
             })
+            .kind(ActivityKind::Listening)
             .into();
 
         let cmd = crate::proto::Rpc {
