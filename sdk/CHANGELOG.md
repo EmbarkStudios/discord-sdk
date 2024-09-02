@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Added
+- [PR#40](https://github.com/EmbarkStudios/discord-sdk/pull/40) added `ActitivityBuilder::kind`.
+
 ## [0.3.7] - 2024-07-26
 ### Added
 - [PR#38](https://github.com/EmbarkStudios/discord-sdk/pull/38) resolved [#39](https://github.com/EmbarkStudios/discord-sdk/issues/39) by adding serialization of the `type` (`kind`) field of [update activity](https://discord.com/developers/docs/game-sdk/activities#updateactivity).
