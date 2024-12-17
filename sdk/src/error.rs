@@ -84,10 +84,6 @@ impl Error {
 /// An error related to the actual use of the Discord API.
 #[derive(thiserror::Error, Debug)]
 pub enum DiscordErr {
-    #[error("attempted to mutate lobby '{0}' not owned by the current user")]
-    UnownedLobby(crate::lobby::LobbyId),
-    #[error("attempted to update an unknown lobby")]
-    UnknownLobby,
     #[error("expected response of '{expected:?}' for request '{nonce}' but received '{actual:?}'")]
     MismatchedResponse {
         expected: crate::CommandKind,
@@ -153,8 +149,6 @@ impl<'stack> From<Option<crate::types::ErrorPayloadStack<'stack>>> for DiscordAp
                                 .map_or_else(|| "unknown problem".to_owned(), |s| s.into_owned()),
                         },
                         4002 => match message.as_deref() {
-                            Some("Already connected to lobby.") => Self::AlreadyConnectedToLobby,
-                            Some("Already connecting to lobby.") => Self::AlreadyConnectingToLobby,
                             Some(msg) if msg.starts_with("Invalid command: ") => {
                                 Self::InvalidCommand {
                                     reason: msg
@@ -168,7 +162,6 @@ impl<'stack> From<Option<crate::types::ErrorPayloadStack<'stack>>> for DiscordAp
                                 message: message.map(|s| s.into_owned()),
                             },
                         },
-                        4014 => to_known("Lobby secret is invalid.", Self::InvalidLobbySecret),
                         _ => Self::Generic {
                             code,
                             message: message.map(|s| s.into_owned()),

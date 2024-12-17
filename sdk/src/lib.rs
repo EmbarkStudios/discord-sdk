@@ -6,14 +6,12 @@ pub mod activity;
 pub mod error;
 mod handler;
 mod io;
-pub mod lobby;
 pub mod overlay;
 mod proto;
 pub mod registration;
 pub mod relations;
 mod types;
 pub mod user;
-pub mod voice;
 
 pub use error::{DiscordApiErr, DiscordErr, Error};
 pub use handler::{handlers, wheel, DiscordHandler, DiscordMsg};
@@ -55,13 +53,11 @@ bitflags::bitflags! {
     #[derive(Copy, Clone)]
     pub struct Subscriptions: u32 {
         const ACTIVITY = 0x1;
-        const LOBBY = 0x2;
         const USER = 0x4;
         const OVERLAY = 0x8;
         const RELATIONSHIPS = 0x10;
-        const VOICE = 0x20;
 
-        const ALL = Self::ACTIVITY.bits() | Self::LOBBY.bits() | Self::USER.bits() | Self::OVERLAY.bits() | Self::RELATIONSHIPS.bits() | Self::VOICE.bits();
+        const ALL = Self::ACTIVITY.bits() | Self::USER.bits() | Self::OVERLAY.bits() | Self::RELATIONSHIPS.bits();
     }
 }
 

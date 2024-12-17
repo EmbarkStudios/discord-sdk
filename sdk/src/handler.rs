@@ -81,20 +81,10 @@ pub(crate) fn handler_task(
                     user_send!(DiscordMsg::Event(event));
                 }
                 Msg::Command { command, kind } => {
-                    use crate::proto::Command;
                     // Some commands can also be turned into events for consistency
-                    match &command.inner {
-                        Command::Subscribe { evt } => {
-                            tracing::debug!(event = ?evt, "subscription succeeded");
-                            continue;
-                        }
-                        Command::CreateLobby(lobby) => {
-                            user_send!(DiscordMsg::Event(Event::LobbyCreate(lobby.clone())));
-                        }
-                        Command::ConnectToLobby(lobby) => {
-                            user_send!(DiscordMsg::Event(Event::LobbyConnect(lobby.clone())));
-                        }
-                        _ => {}
+                    if let crate::proto::Command::Subscribe { evt } = &command.inner {
+                        tracing::debug!(event = ?evt, "subscription succeeded");
+                        continue;
                     }
 
                     match pop_nonce(command.nonce) {
@@ -296,22 +286,6 @@ fn subscribe_task(subs: crate::Subscriptions, stx: cc::Sender<Option<Vec<u8>>>) 
             [].iter()
         };
 
-        let lobby = if subs.contains(crate::Subscriptions::LOBBY) {
-            [
-                EventKind::LobbyDelete,
-                EventKind::LobbyMemberConnect,
-                EventKind::LobbyMemberDisconnect,
-                EventKind::LobbyMemberUpdate,
-                EventKind::LobbyMessage,
-                EventKind::LobbyUpdate,
-                EventKind::SpeakingStart,
-                EventKind::SpeakingStop,
-            ]
-            .iter()
-        } else {
-            [].iter()
-        };
-
         let user = if subs.contains(crate::Subscriptions::USER) {
             [EventKind::CurrentUserUpdate].iter()
         } else {
@@ -324,20 +298,9 @@ fn subscribe_task(subs: crate::Subscriptions, stx: cc::Sender<Option<Vec<u8>>>) 
             [].iter()
         };
 
-        let voice = if subs.contains(crate::Subscriptions::VOICE) {
-            [EventKind::VoiceSettingsUpdate].iter()
-        } else {
-            [].iter()
-        };
-
-        activity
-            .chain(lobby)
-            .chain(user)
-            .chain(relations)
-            .chain(voice)
-            .for_each(|kind| {
-                push(*kind);
-            });
+        activity.chain(user).chain(relations).for_each(|kind| {
+            push(*kind);
+        });
 
         // Unlike EVERY other event, subscribing to OVERLAY_UPDATE requires
         // an argument... :facepalm:
