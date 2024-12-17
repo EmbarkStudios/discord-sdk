@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.4.0] - 2024-12-17
 ### Removed
 - [PR#43](https://github.com/EmbarkStudios/discord-sdk/pull/43) removed the `Voice` and `Lobby` APIs as Discord removed them over a year ago.
 
@@ -94,7 +95,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial crate squat
 
 <!-- next-url -->
-[Unreleased]: https://github.com/EmbarkStudios/discord-sdk/compare/0.3.8...HEAD
+[Unreleased]: https://github.com/EmbarkStudios/discord-sdk/compare/0.4.0...HEAD
+[0.4.0]: https://github.com/EmbarkStudios/discord-sdk/compare/0.3.8...0.4.0
 [0.3.8]: https://github.com/EmbarkStudios/discord-sdk/compare/0.3.7...0.3.8
 [0.3.7]: https://github.com/EmbarkStudios/discord-sdk/compare/0.3.6...0.3.7
 [0.3.6]: https://github.com/EmbarkStudios/discord-sdk/compare/0.3.5...0.3.6
