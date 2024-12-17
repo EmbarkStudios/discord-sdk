@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+### Removed
+- [PR#43](https://github.com/EmbarkStudios/discord-sdk/pull/43) removed the `Voice` and `Lobby` APIs as Discord removed them over a year ago.
+
 ## [0.3.8] - 2024-09-02
 ### Added
 - [PR#40](https://github.com/EmbarkStudios/discord-sdk/pull/40) added `ActitivityBuilder::kind`.
