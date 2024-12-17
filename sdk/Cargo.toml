@@ -41,7 +41,7 @@ serde_repr = "0.1"
 # Datetime types
 time = "0.3"
 # Error helpers
-thiserror = "1.0"
+thiserror = "2.0"
 # Tokio is used to drive the IPC I/O as well as provide the core of the overall
 # async API exposed by this crate
 tokio = { version = "1.8.2", features = [

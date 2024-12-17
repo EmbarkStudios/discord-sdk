@@ -19,7 +19,7 @@ skip = [
     # Older version only used by examples/sniff
     { name = "bitflags", version = "=1.3.2" },
 ]
-skip-tree = [{ crate = "windows-sys@0.48.0", reason = "the usual" }]
+skip-tree = [{ crate = "windows-sys:<0.59.0", reason = "the usual" }]
 
 [sources]
 unknown-registry = "deny"
@@ -37,6 +37,6 @@ confidence-threshold = 0.92
 allow = [
     "Apache-2.0",       # https://tldrlegal.com/license/apache-license-2.0-(apache-2.0)
     "MIT",              # https://tldrlegal.com/license/mit-license
-    "Unicode-DFS-2016",
+    "Unicode-3.0",
 ]
 exceptions = []
