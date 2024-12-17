@@ -1,4 +1,3 @@
-use crate::lobby::Lobby;
 use serde::{Deserialize, Serialize};
 
 /// The different RPC command types
@@ -24,27 +23,6 @@ pub enum CommandKind {
     /// RPC sent to accept the invite of another [`User`]
     AcceptActivityInvite,
 
-    /// RPC sent to create a lobby
-    CreateLobby,
-    /// RPC sent to modify the mutable properties of a lobby
-    UpdateLobby,
-    /// RPC sent to search for lobbies based on some criteria
-    SearchLobbies,
-    /// RPC sent to delete a lobby
-    DeleteLobby,
-    /// RPC sent to connect to a lobby
-    ConnectToLobby,
-    /// RPC sent to disconnect from a lobby
-    DisconnectFromLobby,
-    /// RPC to send a message to a lobby
-    SendToLobby,
-    /// RPC sent to join the current user to the voice channel of the specified lobby
-    ConnectToLobbyVoice,
-    /// RPC sent to disconnect the current user from the voice channel of the specified lobby
-    DisconnectFromLobbyVoice,
-    /// RPC sent to update a lobby member's metadata
-    UpdateLobbyMember,
-
     /// RPC sent to toggle the overlay either opened or closed
     #[serde(rename = "SET_OVERLAY_LOCKED")]
     SetOverlayVisibility,
@@ -57,13 +35,6 @@ pub enum CommandKind {
 
     /// RPC sent to retrieve the full list of a user's active relationships
     GetRelationships,
-
-    /// RPC sent to change the local user's voice settings
-    #[serde(rename = "SET_VOICE_SETTINGS_2")]
-    SetVoiceSettings,
-    /// RPC sent to change the local settings for another user
-    #[serde(rename = "SET_USER_VOICE_SETTINGS_2")]
-    SetUserVoiceSettings,
 }
 
 /// The response to an RPC sent by us.
@@ -73,17 +44,6 @@ pub(crate) enum Command {
     Subscribe {
         evt: super::EventKind,
     },
-
-    CreateLobby(Lobby),
-    UpdateLobby,
-    SearchLobbies(Vec<Lobby>),
-    DeleteLobby,
-    ConnectToLobby(Lobby),
-    DisconnectFromLobby,
-    SendToLobby,
-    ConnectToLobbyVoice,
-    DisconnectFromLobbyVoice,
-    UpdateLobbyMember,
 
     SetActivity(Box<Option<crate::activity::SetActivity>>),
     ActivityInviteUser,
@@ -100,11 +60,6 @@ pub(crate) enum Command {
     GetRelationships {
         relationships: Vec<crate::relations::Relationship>,
     },
-
-    #[serde(rename = "SET_VOICE_SETTINGS_2")]
-    SetVoiceSettings,
-    #[serde(rename = "SET_USER_VOICE_SETTINGS_2")]
-    SetUserVoiceSettings,
 }
 
 /// An RPC sent from Discord as JSON, in response to an RPC sent by us.

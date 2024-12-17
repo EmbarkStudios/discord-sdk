@@ -1,11 +1,6 @@
 use crate::{
-    activity::events as activity_events,
-    lobby::{events as lobby_events, Lobby, LobbyId},
-    overlay::events as overlay_events,
-    relations::events as relation_events,
-    types::ErrorPayload,
-    user::events as user_events,
-    voice::events::VoiceSettingsUpdateEvent,
+    activity::events as activity_events, overlay::events as overlay_events,
+    relations::events as relation_events, types::ErrorPayload, user::events as user_events,
 };
 use serde::{Deserialize, Serialize};
 
@@ -23,21 +18,9 @@ pub(crate) enum EventKind {
     ActivitySpectate,
     ActivityInvite,
 
-    LobbyUpdate,
-    LobbyDelete,
-    LobbyMemberConnect,
-    LobbyMemberUpdate,
-    LobbyMemberDisconnect,
-    LobbyMessage,
-    SpeakingStart,
-    SpeakingStop,
-
     OverlayUpdate,
 
     RelationshipUpdate,
-
-    #[serde(rename = "VOICE_SETTINGS_UPDATE_2")]
-    VoiceSettingsUpdate,
 }
 
 /// An event sent from Discord to notify us of some kind of state change or
@@ -69,44 +52,6 @@ pub enum Event {
     /// [API docs](https://discord.com/developers/docs/game-sdk/users#oncurrentuserupdate)
     CurrentUserUpdate(user_events::UpdateEvent),
 
-    /// Event fired when a user starts speaking in a lobby voice channel.
-    ///
-    /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onspeaking)
-    SpeakingStart(lobby_events::SpeakingEvent),
-    /// Event fired when a user stops speaking in a lobby voice channel.
-    ///
-    /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onspeaking)
-    SpeakingStop(lobby_events::SpeakingEvent),
-    /// Event fired when a user connects to a lobby.
-    ///
-    /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onmemberconnect)
-    LobbyMemberConnect(lobby_events::MemberEvent),
-    /// Event fired when a user disconnects from a lobby.
-    ///
-    /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onmemberdisconnect)
-    LobbyMemberDisconnect(lobby_events::MemberEvent),
-    /// Event fired when a lobby is deleted, or the user disconnects from the lobby.
-    ///
-    /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onlobbydelete)
-    LobbyDelete { id: LobbyId },
-    /// Event fired when a lobby is updated. Note that this is only the metadata
-    /// on the lobby itself, not the `members`.
-    ///
-    /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onlobbyupdate)
-    LobbyUpdate(Lobby),
-    /// Event fired when the metadata for a lobby member is changed.
-    ///
-    /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onmemberupdate)
-    LobbyMemberUpdate(lobby_events::MemberEvent),
-    /// Event fired when a message is sent to the lobby.
-    ///
-    /// [API docs](https://discord.com/developers/docs/game-sdk/lobbies#onlobbymessage)
-    LobbyMessage(lobby_events::MessageEvent),
-    #[serde(skip)]
-    LobbyCreate(Lobby),
-    #[serde(skip)]
-    LobbyConnect(Lobby),
-
     /// Sent by Discord when the local user has requested to join a game, and
     /// the remote user has accepted their request.
     ///
@@ -135,10 +80,6 @@ pub enum Event {
     ///
     /// [API docs](https://discord.com/developers/docs/game-sdk/relationships#onrelationshipupdate)
     RelationshipUpdate(std::sync::Arc<crate::relations::Relationship>),
-
-    /// Event fired when any voice settings are changed
-    #[serde(rename = "VOICE_SETTINGS_UPDATE_2")]
-    VoiceSettingsUpdate(VoiceSettingsUpdateEvent),
 }
 
 /// An event sent from Discord as JSON.
@@ -161,18 +102,15 @@ pub(crate) struct EventFrame {
 }
 
 pub enum ClassifiedEvent {
-    Lobby(lobby_events::LobbyEvent),
     User(user_events::UserEvent),
     Activity(activity_events::ActivityEvent),
     Overlay(overlay_events::OverlayEvent),
     Relations(relation_events::RelationshipEvent),
-    Voice(VoiceSettingsUpdateEvent),
 }
 
 impl From<Event> for ClassifiedEvent {
     fn from(eve: Event) -> Self {
         use activity_events::ActivityEvent as AE;
-        use lobby_events::LobbyEvent as LE;
         use user_events::UserEvent as UE;
 
         match eve {
@@ -182,18 +120,6 @@ impl From<Event> for ClassifiedEvent {
                 Self::User(UE::Disconnect(user_events::DisconnectEvent { reason }))
             }
             Event::CurrentUserUpdate(user) => Self::User(UE::Update(user)),
-
-            // Lobby
-            Event::SpeakingStart(se) => Self::Lobby(LE::SpeakingStart(se)),
-            Event::SpeakingStop(se) => Self::Lobby(LE::SpeakingStop(se)),
-            Event::LobbyDelete { id } => Self::Lobby(LE::Delete { id }),
-            Event::LobbyUpdate(lob) => Self::Lobby(LE::Update(lob)),
-            Event::LobbyMemberConnect(me) => Self::Lobby(LE::MemberConnect(me)),
-            Event::LobbyMemberDisconnect(me) => Self::Lobby(LE::MemberDisconnect(me)),
-            Event::LobbyMemberUpdate(me) => Self::Lobby(LE::MemberUpdate(me)),
-            Event::LobbyMessage(msg) => Self::Lobby(LE::Message(msg)),
-            Event::LobbyCreate(lobby) => Self::Lobby(LE::Create(lobby)),
-            Event::LobbyConnect(lobby) => Self::Lobby(LE::Connect(lobby)),
 
             // Activity
             Event::ActivityJoin(secret) => Self::Activity(AE::Join(secret)),
@@ -210,9 +136,6 @@ impl From<Event> for ClassifiedEvent {
             Event::RelationshipUpdate(relationship) => {
                 Self::Relations(relation_events::RelationshipEvent::Update(relationship))
             }
-
-            // Voice
-            Event::VoiceSettingsUpdate(voice) => Self::Voice(voice),
 
             // Errors get converted before this path
             Event::Error(_) => unreachable!(),

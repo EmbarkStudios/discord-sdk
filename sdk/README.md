@@ -1,3 +1,5 @@
+<!-- markdownlint-disable no-inline-html first-line-h1 no-duplicate-heading -->
+
 <div align="center">
 
 # `⚔️ discord-sdk`
@@ -52,52 +54,9 @@
 
 ### TODO: [Applications](https://discord.com/developers/docs/game-sdk/applications)
 
-### ⚠️ [Voice](https://discord.com/developers/docs/game-sdk/discord-voice)
-
-#### Commands
-
-- [x] [Set Input Mode](https://discord.com/developers/docs/game-sdk/discord-voice#setinputmode)
-- [x] [Set Self Mute](https://discord.com/developers/docs/game-sdk/discord-voice#setselfmute)
-- [x] [Set Self Deaf](https://discord.com/developers/docs/game-sdk/discord-voice#setselfdeaf)
-- [x] [Set Local Mute](https://discord.com/developers/docs/game-sdk/discord-voice#setlocalmute)
-- [x] [Set Local Volume](https://discord.com/developers/docs/game-sdk/discord-voice#setlocalvolume)
-
-#### Events
-
-- [x] `VOICE_SETTINGS_UPDATE_2` - Undocumented, but this event is fired for all voice settings changes, _except_ for "Set Local Volume".
-
 ### TODO: [Images](https://discord.com/developers/docs/game-sdk/images)
 
-### ⚠️ [Lobbies](https://discord.com/developers/docs/game-sdk/lobbies)
-
-#### Commands
-
-- [x] [Create Lobby](https://discord.com/developers/docs/game-sdk/lobbies#createlobby)
-- [x] [Update Lobby](https://discord.com/developers/docs/game-sdk/lobbies#updatelobby)
-- [x] [Delete Lobby](https://discord.com/developers/docs/game-sdk/lobbies#deletelobby)
-- [x] [Connect Lobby](https://discord.com/developers/docs/game-sdk/lobbies#connectlobby)
-- [x] [Disconnect Lobby](https://discord.com/developers/docs/game-sdk/lobbies#disconnectlobby)
-- [x] [Update Member](https://discord.com/developers/docs/game-sdk/lobbies#updatemember)
-- [x] [Send Lobby Message](https://discord.com/developers/docs/game-sdk/lobbies#sendlobbymessage)
-- [x] [Search](https://discord.com/developers/docs/game-sdk/lobbies#search) - **NOTE**: This seems to be completely broken and never returns results.
-- [x] [Connect Voice](https://discord.com/developers/docs/game-sdk/lobbies#connectvoice)
-- [x] [Disconnect Voice](https://discord.com/developers/docs/game-sdk/lobbies#disconnectvoice)
-
-#### Events
-
-- [x] [Lobby Update](https://discord.com/developers/docs/game-sdk/lobbies#onlobbyupdate)
-- [x] [Lobby Delete](https://discord.com/developers/docs/game-sdk/lobbies#onlobbydelete)
-- [x] [Member Connect](https://discord.com/developers/docs/game-sdk/lobbies#onmemberconnect)
-- [x] [Member Update](https://discord.com/developers/docs/game-sdk/lobbies#onmemberupdate)
-- [x] [Member Disconnect](https://discord.com/developers/docs/game-sdk/lobbies#onmemberdisconnect)
-- [x] [Lobby Message](https://discord.com/developers/docs/game-sdk/lobbies#onlobbymessage)
-- [x] [Speaking](https://discord.com/developers/docs/game-sdk/lobbies#onspeaking)
-
 #### Other
-
-- [ ] [Integrated Networking](https://discord.com/developers/docs/game-sdk/lobbies#integrated-networking)
-
-### ⚠️ [Networking](https://discord.com/developers/docs/game-sdk/networking)
 
 ### [Overlay](https://discord.com/developers/docs/game-sdk/overlay)
 
@@ -142,10 +101,6 @@ Also note, the SDK itself and its documentation uses the utterly confusing termi
 #### Events
 
 - [x] [Current User Update](https://discord.com/developers/docs/game-sdk/users#oncurrentuserupdate)
-
-### ⚠️ Deprecation
-
-This hasn't been officially announced by Discord yet, but the [Voice](#voice), [Lobbies](#lobbies), and [Networking](#networking) functionality will be deprecated and removed sometime in the future. Since only the lobbies functionality has been implemented thus far, we will mark that functionality as [`deprecated`](https://doc.rust-lang.org/reference/attributes/diagnostics.html#the-deprecated-attribute) once it is official.
 
 ## Testing
 
