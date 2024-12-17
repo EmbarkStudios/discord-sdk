@@ -114,14 +114,6 @@ For now, it's required that you manually spin up 2 different Discord application
 cargo test --features local-testing test_activity
 ```
 
-### Lobbies
-
-**NOTE**: This does not test the lobby `search` functionality as that command seems to be non-functioning and never returns results, even if the [REST](https://discord.com/developers/docs/game-sdk/lobbies#create-lobby-search) equivalent does return the expected results.
-
-```sh
-cargo test --features local-testing test_lobbies
-```
-
 ## Contribution
 
 [![Contributor Covenant](https://img.shields.io/badge/contributor%20covenant-v1.4-ff69b4.svg)](https://github.com/EmbarkStudios/discord-sdk/blob/main/sdk/CODE_OF_CONDUCT.md)
