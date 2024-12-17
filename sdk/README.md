@@ -29,9 +29,7 @@
 
 ## Implemented Features
 
-### TODO: [Achievements](https://discord.com/developers/docs/game-sdk/achievements)
-
-### [Activities (Rich Presence)](https://discord.com/developers/docs/game-sdk/activities)
+### [Activities (Rich Presence)](https://discord.com/developers/docs/developer-tools/game-sdk#activities)
 
 #### Commands
 
@@ -52,13 +50,9 @@
 
 - [x] [Application Registration (Windows, Linux, Mac)](https://discord.com/developers/docs/game-sdk/activities#registercommand)
 
-### TODO: [Applications](https://discord.com/developers/docs/game-sdk/applications)
-
-### TODO: [Images](https://discord.com/developers/docs/game-sdk/images)
-
 #### Other
 
-### [Overlay](https://discord.com/developers/docs/game-sdk/overlay)
+### [Overlay](https://discord.com/developers/docs/developer-tools/game-sdk#overlay)
 
 **NOTE**: These are only tested insofar as the protocol is (probably) correct, however, the overlay is currently extremely limited, and so we were unable to test that the overlay commands _actually_ function correctly since our primary project is Vulkan.
 
@@ -87,11 +81,7 @@ Also note, the SDK itself and its documentation uses the utterly confusing termi
 
 - [x] [Relationship Update](https://discord.com/developers/docs/game-sdk/relationships#onrelationshipupdate)
 
-### TODO: [Storage](https://discord.com/developers/docs/game-sdk/storage)
-
-### TODO?: [Store](https://discord.com/developers/docs/game-sdk/store)
-
-### [Users](https://discord.com/developers/docs/game-sdk/users)
+### [Users](https://discord.com/developers/docs/developer-tools/game-sdk#users)
 
 #### Commands
 
