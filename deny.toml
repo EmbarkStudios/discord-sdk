@@ -8,7 +8,6 @@ targets = [
 ]
 
 [advisories]
-version = 2
 yanked = "deny"
 ignore = []
 
@@ -31,7 +30,6 @@ allow-git = []
 github = ["EmbarkStudios"]
 
 [licenses]
-version = 2
 private = { ignore = true, registries = ["embark"] }
 confidence-threshold = 0.92
 allow = [
